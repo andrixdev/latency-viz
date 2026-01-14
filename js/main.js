@@ -173,7 +173,7 @@ Bub.getHistoryAverage = function () {
   return nrj
 }
 Bub.updateBubbleEnergy = function () {
-  let alpha = 20
+  let alpha = 25
   let beta = 1
   let gamma = 0
 
@@ -189,7 +189,7 @@ Bub.updateBubbleEnergy = function () {
   let newSquareSum = getSquareSum(this.bubbleRadii)
   let lastSquareSum = getSquareSum(this.lastBubbleRadii)
   let E = Math.abs(newSquareSum - lastSquareSum)
-  let sigma = 0.5
+  let sigma = 0.6
   let visualE = 3 * Math.pow(10000 * E, sigma)
 
   // If something changed (non-zero energy), push to one of the history values
@@ -412,7 +412,7 @@ Bub.drawAura = function (ctx, mode) {
 
   let zRescale = 1500
   ctx.strokeStyle = mode == "iso" ? "#FFFA" : "hsl(210, 80%, 50%)"
-  let auraScale = mode == "iso" ? 1 : (0.1 + this.energy * 0.12)
+  let auraScale = mode == "iso" ? 1 : (0.08 + this.energy * 0.08)
 
   for (let aura = 2; aura <= 12; aura++) {
     let auraStep = aura / 12 * auraScale
