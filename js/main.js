@@ -74,8 +74,16 @@ Bub.setup = function () {
   // Bubble energy
   this.bubbleRadii = 0
   this.lastBubbleRadii = 0
-  this.bubbleEnergy = 0
-  this.energyHistory = []
+  this.historyLength = 6
+  this.historyIndex = 0
+  this.history = []
+  this.energy = 0 // Average of history
+}
+Bub.update = function () {
+  this.step++
+}
+Bub.updateFPS = function (deltaTime) {
+  this.fps = Math.round(1000 / deltaTime)
 }
 Bub.updateZoomClick = (type) => {
   if (type == "minusminus") Bub.zoom = Math.round(Bub.zoom * 0.5)
@@ -150,16 +158,28 @@ Bub.getBubbleRadii = function () {
 
   return { rAvg: rAverage, rMin: rMin, rMax: rMax }
 }
-Bub.getEnergyHistoryAverage = function () {
+Bub.getHistoryAverage = function () {
+  if (!this.history.length) {
+    console.log("Empty energy history, filling with zeros...")
+    for (let i = 0; i < this.historyLength; i++) {
+      this.history.push(0)
+    }
+  }
 
+  let nrj = 0
+  this.history.forEach(h => { nrj += h })
+  nrj /= this.historyLength
+
+  return nrj
 }
 Bub.updateBubbleEnergy = function () {
-  this.lastBubbleRadii = this.bubbleRadii
-  let alpha = 25
+  let alpha = 20
   let beta = 1
-  let gamma = 25
+  let gamma = 0
 
+  this.lastBubbleRadii = this.bubbleRadii
   this.bubbleRadii = this.getBubbleRadii()
+
   // E = variation of weighted average of squares
 
   let getSquareSum = (rii) => {
@@ -168,8 +188,19 @@ Bub.updateBubbleEnergy = function () {
 
   let newSquareSum = getSquareSum(this.bubbleRadii)
   let lastSquareSum = getSquareSum(this.lastBubbleRadii)
-  let E = newSquareSum - lastSquareSum
-  this.bubbleEnergy = Math.abs(E)
+  let E = Math.abs(newSquareSum - lastSquareSum)
+  let sigma = 0.5
+  let visualE = 3 * Math.pow(10000 * E, sigma)
+
+  // If something changed (non-zero energy), push to one of the history values
+  if (E > 0) {
+    this.historyIndex = (this.historyIndex + 1) % this.historyLength
+    this.history[this.historyIndex] = visualE
+
+    // Assign average of history to energy value
+    this.energy = this.getHistoryAverage()
+  }
+  
 }
 Bub.draw0 = function () {
   let ctx = this.ctxs[0]
@@ -236,46 +267,7 @@ Bub.draw2 = function () {
   this.drawBarycenter(ctx)
 }
 Bub.draw3 = function () {
-  let ctx = this.ctxs[3]
-
-  ctx.clearRect(0, 0, this.width, this.height)
-  
-  let bary = this.getBubbleBarycenter()
-
-  let zRescale = 1500
-  ctx.strokeStyle = "#FFFA"
-
-  for (let aura = 2; aura <= 12; aura++) {
-    let auraStep = aura / 12
-    for (let b = 0; b < this.bubble.length; b++) {
-      let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
-      let bubStart = this.bubble[startIndex]
-      let bubEnd = this.bubble[b]
-
-      ctx.beginPath()
-      
-      let x1 = bary.x + (bubStart.x - bary.x) * auraStep
-      let y1 = bary.y + (bubStart.y - bary.y) * auraStep
-      let z1 = bary.z + ((bubStart.z - bary.z) * auraStep) * zRescale
-      
-      let x2 = bary.x + (bubEnd.x - bary.x) * auraStep
-      let y2 = bary.y + (bubEnd.y - bary.y) * auraStep
-      let z2 = bary.z + ((bubEnd.z - bary.z) * auraStep) * zRescale
-
-      let xyrStart = Bub.dataXYZtoCanvasXYR(x1, y1, z1)
-      let xyrEnd = Bub.dataXYZtoCanvasXYR(x2, y2, z2)
-
-      ctx.moveTo(xyrStart.x, xyrStart.y)
-      ctx.lineTo(xyrEnd.x, xyrEnd.y)
-      ctx.lineWidth = .15 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
-      ctx.stroke()
-    }
-  
-    ctx.closePath()
-  }
-
-  this.drawBarycenter(ctx)
-
+  this.drawAura(this.ctxs[3], "iso")
 }
 Bub.draw4 = function () {
   let ctx = this.ctxs[4]
@@ -401,19 +393,59 @@ Bub.draw7 = function () {
 }
 Bub.draw8 = function () {
   let ctx = this.ctxs[8]
-  if (this.bubbleEnergy > 0) {
+  if (this.energy > 0) {
     ctx.clearRect(0, 0, this.width, this.height)
     ctx.beginPath()
-    let sigma = .5
-    let drawnE = 10 + 10 * Math.pow(100 * this.bubbleEnergy, sigma)
-    ctx.arc(this.xC, this.yC, drawnE, 0, 2 * Math.PI, false)
+    let rad = this.energy
+    ctx.arc(this.xC, this.yC, rad, 0, 2 * Math.PI, false)
     ctx.fill()
     ctx.closePath()
   }
 }
 Bub.draw9 = function () {
-
+  this.drawAura(this.ctxs[9], "energy")
 }
+Bub.drawAura = function (ctx, mode) {
+  ctx.clearRect(0, 0, this.width, this.height)
+  
+  let bary = this.getBubbleBarycenter()
+
+  let zRescale = 1500
+  ctx.strokeStyle = mode == "iso" ? "#FFFA" : "hsl(210, 80%, 50%)"
+  let auraScale = mode == "iso" ? 1 : (0.1 + this.energy * 0.12)
+
+  for (let aura = 2; aura <= 12; aura++) {
+    let auraStep = aura / 12 * auraScale
+    for (let b = 0; b < this.bubble.length; b++) {
+      let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
+      let bubStart = this.bubble[startIndex]
+      let bubEnd = this.bubble[b]
+
+      ctx.beginPath()
+      
+      let x1 = bary.x + (bubStart.x - bary.x) * auraStep
+      let y1 = bary.y + (bubStart.y - bary.y) * auraStep
+      let z1 = bary.z + ((bubStart.z - bary.z) * auraStep) * zRescale
+      
+      let x2 = bary.x + (bubEnd.x - bary.x) * auraStep
+      let y2 = bary.y + (bubEnd.y - bary.y) * auraStep
+      let z2 = bary.z + ((bubEnd.z - bary.z) * auraStep) * zRescale
+
+      let xyrStart = Bub.dataXYZtoCanvasXYR(x1, y1, z1)
+      let xyrEnd = Bub.dataXYZtoCanvasXYR(x2, y2, z2)
+
+      ctx.moveTo(xyrStart.x, xyrStart.y)
+      ctx.lineTo(xyrEnd.x, xyrEnd.y)
+      ctx.lineWidth = .15 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
+      ctx.stroke()
+    }
+  
+    ctx.closePath()
+  }
+
+  this.drawBarycenter(ctx)
+}
+
 Bub.clearCanvases = function () {
   this.ctxs[4].clearRect(0, 0, this.width, this.height)
 }
@@ -447,9 +479,6 @@ Bub.dataXYZtoCanvasXYR = function (x, y, z) {
 	rr = Math.min(rr, 100 * this.dataToImageRatio3D)
 
 	return { x: xx, y: yy, r: rr }
-}
-Bub.update = function () {
-  this.step++
 }
 
 // Bub UI
@@ -547,14 +576,15 @@ UI.initCaptions = function () {
   document.getElementById("can-6-caption").innerHTML = "Circles"
   document.getElementById("can-7-caption").innerHTML = "Vitruvian"
   document.getElementById("can-8-caption").innerHTML = "Energy"
+  document.getElementById("can-9-caption").innerHTML = "Aura Energy"
 }
 UI.updateZoom = function () {
   this.zoomValueNode.innerHTML = Bub.zoom
 }
-UI.updateFPS = function (deltaTime) {
-  this.fps = Math.round(1000 / deltaTime)
-  this.fpsNode.innerHTML = this.fps
+UI.updateFPS = function () {
+  this.fpsNode.innerHTML = Bub.fps
 }
+
 
 // Main methods
 let frame = () => {
@@ -575,13 +605,15 @@ let frame = () => {
     Bub.draw9()
   }
   
-  if (Bub.step % 3 == 0) {
+  if (Bub.step % 1 == 0) {
     Bub.updateBubbleEnergy()
   }
 
   let endTime = new Date().getTime()
 
-  UI.updateFPS(endTime - startTime)
+  Bub.updateFPS(endTime - startTime)
+
+  if (Bub.step % 5 == 0) UI.updateFPS()
 
   window.requestAnimationFrame(frame)
 }
