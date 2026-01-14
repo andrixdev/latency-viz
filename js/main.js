@@ -8,7 +8,7 @@ let UI = {}
 // Bub logic
 Bub.setup = function () {
   const inner = window.innerWidth
-  let size = inner * (inner > 600 ? 0.42 : 0.97)
+  let size = 540//inner * (inner > 600 ? 0.42 : 0.97)
   let dpr = window.devicePixelRatio
   this.width = size
 	this.height = size * 9 / 16
@@ -447,7 +447,7 @@ Bub.drawAura = function (ctx, mode) {
 }
 
 Bub.clearCanvases = function () {
-  this.ctxs[4].clearRect(0, 0, this.width, this.height)
+  this.ctxs[5].clearRect(0, 0, this.width, this.height)
 }
 Bub.drawBarycenter = function (ctx) {
   let bary = this.getBubbleBarycenter()

@@ -54,7 +54,7 @@ canvas {
   outline: 1px solid red;
   margin: 10px;
   border-radius: 1px;
-  cursor: crosshair;
+  cursor: move;
   margin-top: 60px;
 }
 p.caption {
