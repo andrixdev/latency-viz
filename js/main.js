@@ -17,7 +17,7 @@ Bub.setup = function () {
 
   this.cans = []
   this.ctxs = []
-  this.canPop = 7
+  this.canPop = 10
   for (let c = 0; c < this.canPop; c++) {
     let can = document.createElement("canvas")
     can.id = "can-" + c
@@ -64,6 +64,12 @@ Bub.setup = function () {
   for (let i = 0; i < 10; i++) {
     this.bubble.push({ x: 0, y: 0, z: 0 })
   }
+
+  // Bubble energy
+  this.bubbleRadii = 0
+  this.lastBubbleRadii = 0
+  this.bubbleEnergy = 0
+  this.energyHistory = []
 }
 Bub.updateZoomClick = (type) => {
   if (type == "minusminus") Bub.zoom = Math.round(Bub.zoom * 0.5)
@@ -138,15 +144,53 @@ Bub.getBubbleRadii = function () {
 
   return { rAvg: rAverage, rMin: rMin, rMax: rMax }
 }
+Bub.getEnergyHistoryAverage = function () {
+
+}
+Bub.updateBubbleEnergy = function () {
+  this.lastBubbleRadii = this.bubbleRadii
+  let alpha = 25
+  let beta = 1
+  let gamma = 25
+
+  this.bubbleRadii = this.getBubbleRadii()
+  // E = variation of weighted average of squares
+
+  let getSquareSum = (rii) => {
+    return 1 / (alpha + beta + gamma) * (alpha * Math.pow(rii.rMin, 2) + beta * Math.pow(rii.rAvg, 2) + gamma * Math.pow(rii.rMax, 2))
+  }
+
+  let newSquareSum = getSquareSum(this.bubbleRadii)
+  let lastSquareSum = getSquareSum(this.lastBubbleRadii)
+  let E = newSquareSum - lastSquareSum
+  this.bubbleEnergy = Math.abs(E)
+}
 Bub.draw0 = function () {
   let ctx = this.ctxs[0]
-  ctx.clearRect(0, 0, this.width, this.height)
 
-  ctx.beginPath()
+  ctx.clearRect(0, 0, this.width, this.height)
   
-  ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
+  for (let b = 0; b < this.bubble.length; b++) {
+    let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
+    ctx.beginPath()
+    let bubStart = this.bubble[startIndex]
+    let bubEnd = this.bubble[b]
+    console.log(bubStart.x, bubStart.y)
+    let xStart = this.xC + (bubStart.x - 0.5) * this.width
+    let yStart = this.yC + (bubStart.y - 0.5) * this.height
+    let xEnd = this.xC + (bubEnd.x - 0.5) * this.width
+    let yEnd = this.yC + (bubEnd.y - 0.5) * this.height
+    ctx.moveTo(xStart, yStart)
+    ctx.lineTo(xEnd, yEnd)
+    ctx.stroke()
+  }
   
-  ctx.fillStyle = "hsl(" + this.step/5 + ", 60%, 40%)"
+  ctx.closePath()
+}
+Bub.draw1 = function () {
+  let ctx = this.ctxs[1]
+  ctx.clearRect(0, 0, this.width, this.height)
+  
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
     ctx.beginPath()
@@ -163,8 +207,8 @@ Bub.draw0 = function () {
   
   ctx.closePath()
 }
-Bub.draw1 = function () {
-  let ctx = this.ctxs[1]
+Bub.draw2 = function () {
+  let ctx = this.ctxs[2]
   ctx.clearRect(0, 0, this.width, this.height)
 
   ctx.beginPath()
@@ -192,8 +236,11 @@ Bub.draw1 = function () {
 
   this.drawBarycenter(ctx)
 }
-Bub.draw2 = function () {
-  let ctx = this.ctxs[2]
+Bub.draw3 = function () {
+
+}
+Bub.draw4 = function () {
+  let ctx = this.ctxs[4]
   ctx.clearRect(0, 0, this.width, this.height)
 
   let zRescale = 2000
@@ -217,8 +264,8 @@ Bub.draw2 = function () {
   
   ctx.closePath()
 }
-Bub.draw3 = function () {
-  let ctx = this.ctxs[3]
+Bub.draw5 = function () {
+  let ctx = this.ctxs[5]
   let zRescale = 2000
   ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
 
@@ -240,8 +287,8 @@ Bub.draw3 = function () {
   
   ctx.closePath()
 }
-Bub.draw4 = function () {
-  let ctx = this.ctxs[4]
+Bub.draw6 = function () {
+  let ctx = this.ctxs[6]
   
   ctx.clearRect(0, 0, this.width, this.height)
 
@@ -276,8 +323,8 @@ Bub.draw4 = function () {
   
 
 }
-Bub.draw5 = function () {
-  let ctx = this.ctxs[5]
+Bub.draw7 = function () {
+  let ctx = this.ctxs[7]
   
   ctx.clearRect(0, 0, this.width, this.height)
 
@@ -295,6 +342,7 @@ Bub.draw5 = function () {
   let drawPentagon = (ctx, rad) => {
     let x, y
     let angle = -Math.PI / 2
+
     for (let i = 0; i < 5; i++) {
       ctx.beginPath()
       x = baryXyr.x + rad * Math.cos(angle)
@@ -306,14 +354,26 @@ Bub.draw5 = function () {
       ctx.lineTo(x, y)
       ctx.stroke()
     }
-    
   }
 
   // Draw inscribed, average and circumscribed pentagons
   drawPentagon(ctx, rScale * rii.rMin)
   drawPentagon(ctx, rScale * rii.rAvg)
   drawPentagon(ctx, rScale * rii.rMax)
-  
+}
+Bub.draw8 = function () {
+  let ctx = this.ctxs[8]
+  if (this.bubbleEnergy > 0) {
+    ctx.clearRect(0, 0, this.width, this.height)
+    ctx.beginPath()
+    let sigma = .5
+    let drawnE = 10 + 10 * Math.pow(100 * this.bubbleEnergy, sigma)
+    ctx.arc(this.xC, this.yC, drawnE, 0, 2 * Math.PI, false)
+    ctx.fill()
+    ctx.closePath()
+  }
+}
+Bub.draw9 = function () {
 
 }
 Bub.clearCanvases = function () {
@@ -459,6 +519,14 @@ let frame = () => {
     Bub.draw3()
     Bub.draw4()
     Bub.draw5()
+    Bub.draw6()
+    Bub.draw7()
+    Bub.draw8()
+    Bub.draw9()
+  }
+  
+  if (Bub.step % 3 == 0) {
+    Bub.updateBubbleEnergy()
   }
 
   let endTime = new Date().getTime()
