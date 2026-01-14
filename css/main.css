@@ -47,7 +47,7 @@ body {
   display: flex;
   flex-flow: row;
   flex-wrap: wrap;
-  padding-top: 60px;
+  padding-top: 12px;
   margin: 0;
 }
 canvas {
@@ -55,6 +55,16 @@ canvas {
   margin: 10px;
   border-radius: 1px;
   cursor: crosshair;
+  margin-top: 60px;
+}
+p.caption {
+  text-align: left;
+  font-family: "Rationale", sans-serif;
+  text-transform: uppercase;
+  margin: -30px 17px;
+  line-height: 0;
+  font-size: 20px;
+  color: #FFFC;
 }
 header {
   position: fixed;

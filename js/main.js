@@ -41,7 +41,13 @@ Bub.setup = function () {
 
     this.ctxs.push(ctx)
     this.cans.push(can)
-    body.appendChild(can)
+    let container = document.createElement("div")
+    let caption = document.createElement("p")
+    caption.id = can.id + "-caption"
+    caption.classList = "caption"
+    container.appendChild(can)
+    container.appendChild(caption)
+    body.appendChild(container)
   }
 
 	this.dataToImageRatio3D = this.width / 5
@@ -53,9 +59,9 @@ Bub.setup = function () {
 	this.zNearPlan = 1500
 	this.zFarPlan = -10000
 
-  this.zoom = 2000
-  this.xOffset = -10
-  this.yOffset = -10
+  this.zoom = 10000
+  this.xOffset = -150
+  this.yOffset = -150
 
   this.step = 0
 
@@ -175,7 +181,6 @@ Bub.draw0 = function () {
     ctx.beginPath()
     let bubStart = this.bubble[startIndex]
     let bubEnd = this.bubble[b]
-    console.log(bubStart.x, bubStart.y)
     let xStart = this.xC + (bubStart.x - 0.5) * this.width
     let yStart = this.yC + (bubStart.y - 0.5) * this.height
     let xEnd = this.xC + (bubEnd.x - 0.5) * this.width
@@ -211,12 +216,8 @@ Bub.draw2 = function () {
   let ctx = this.ctxs[2]
   ctx.clearRect(0, 0, this.width, this.height)
 
-  ctx.beginPath()
-  
   let zRescale = 2000
-  ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
-  
-  ctx.fillStyle = "hsl(" + this.step/5 + ", 60%, 40%)"
+
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
     ctx.beginPath()
@@ -226,8 +227,6 @@ Bub.draw2 = function () {
     let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zRescale)
     ctx.moveTo(xyrStart.x, xyrStart.y)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
-    //ctx.arc(pt.x, pt.y, 3 * xyr.r, 0, 2 * Math.PI, false)
-    //ctx.fill()
     ctx.lineWidth = .15 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
     ctx.stroke()
   }
@@ -237,6 +236,45 @@ Bub.draw2 = function () {
   this.drawBarycenter(ctx)
 }
 Bub.draw3 = function () {
+  let ctx = this.ctxs[3]
+
+  ctx.clearRect(0, 0, this.width, this.height)
+  
+  let bary = this.getBubbleBarycenter()
+
+  let zRescale = 1500
+  ctx.strokeStyle = "#FFFA"
+
+  for (let aura = 2; aura <= 12; aura++) {
+    let auraStep = aura / 12
+    for (let b = 0; b < this.bubble.length; b++) {
+      let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
+      let bubStart = this.bubble[startIndex]
+      let bubEnd = this.bubble[b]
+
+      ctx.beginPath()
+      
+      let x1 = bary.x + (bubStart.x - bary.x) * auraStep
+      let y1 = bary.y + (bubStart.y - bary.y) * auraStep
+      let z1 = bary.z + ((bubStart.z - bary.z) * auraStep) * zRescale
+      
+      let x2 = bary.x + (bubEnd.x - bary.x) * auraStep
+      let y2 = bary.y + (bubEnd.y - bary.y) * auraStep
+      let z2 = bary.z + ((bubEnd.z - bary.z) * auraStep) * zRescale
+
+      let xyrStart = Bub.dataXYZtoCanvasXYR(x1, y1, z1)
+      let xyrEnd = Bub.dataXYZtoCanvasXYR(x2, y2, z2)
+
+      ctx.moveTo(xyrStart.x, xyrStart.y)
+      ctx.lineTo(xyrEnd.x, xyrEnd.y)
+      ctx.lineWidth = .15 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
+      ctx.stroke()
+    }
+  
+    ctx.closePath()
+  }
+
+  this.drawBarycenter(ctx)
 
 }
 Bub.draw4 = function () {
@@ -266,7 +304,7 @@ Bub.draw4 = function () {
 }
 Bub.draw5 = function () {
   let ctx = this.ctxs[5]
-  let zRescale = 2000
+  let zRescale = 3000
   ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
 
   ctx.beginPath()
@@ -377,7 +415,7 @@ Bub.draw9 = function () {
 
 }
 Bub.clearCanvases = function () {
-  this.ctxs[3].clearRect(0, 0, this.width, this.height)
+  this.ctxs[4].clearRect(0, 0, this.width, this.height)
 }
 Bub.drawBarycenter = function (ctx) {
   let bary = this.getBubbleBarycenter()
@@ -432,6 +470,7 @@ UI.setup = function () {
   this.fps = 0
 
   this.initControlsListeners()
+  this.initCaptions()
 }
 UI.initControlsListeners = function () {
 
@@ -497,6 +536,17 @@ UI.initControlsListeners = function () {
     Bub.clearCanvases()
     //console.log("Dragging off")
   })
+}
+UI.initCaptions = function () {
+  document.getElementById("can-0-caption").innerHTML = "2D"
+  document.getElementById("can-1-caption").innerHTML = "3D"
+  document.getElementById("can-2-caption").innerHTML = "3D depth"
+  document.getElementById("can-3-caption").innerHTML = "3D aura"
+  document.getElementById("can-4-caption").innerHTML = "Silhouette"
+  document.getElementById("can-5-caption").innerHTML = "Painting"
+  document.getElementById("can-6-caption").innerHTML = "Circles"
+  document.getElementById("can-7-caption").innerHTML = "Vitruvian"
+  document.getElementById("can-8-caption").innerHTML = "Energy"
 }
 UI.updateZoom = function () {
   this.zoomValueNode.innerHTML = Bub.zoom
