@@ -4,6 +4,8 @@
 
 let Bub = {}
 let UI = {}
+
+// Bub logic
 Bub.setup = function () {
   const inner = window.innerWidth
   let size = inner * (inner > 600 ? 0.42 : 0.97)
@@ -63,24 +65,6 @@ Bub.setup = function () {
     this.bubble.push({ x: 0, y: 0, z: 0 })
   }
 }
-UI.setup = function () {
-  // Misc
-  this.fpsNode = document.getElementById("fps")
-  this.canvasesNodes = document.getElementsByTagName("canvas")
-
-  // Zoom
-  this.zoomValueNode = document.getElementById("zoom")
-  this.zoomMinusMinusNode = document.getElementById("zoom-minusminus")
-  this.zoomMinusNode = document.getElementById("zoom-minus")
-  this.zoomPlusNode = document.getElementById("zoom-plus")
-  this.zoomPlusPlusNode = document.getElementById("zoom-plusplus")
-
-  this.updateZoom()
-
-  this.fps = 0
-
-  this.initControlsListeners()
-}
 Bub.updateZoomClick = (type) => {
   if (type == "minusminus") Bub.zoom = Math.round(Bub.zoom * 0.5)
   if (type == "minus") Bub.zoom = Math.round(Bub.zoom * 0.85)
@@ -88,14 +72,8 @@ Bub.updateZoomClick = (type) => {
   if (type == "plusplus") Bub.zoom = Math.round(Bub.zoom * 2)
 }
 Bub.updateZoomWheel = function (deltaY) {
-  Bub.zoom += -2.5 * deltaY
-}
-UI.updateZoom = function () {
-  this.zoomValueNode.innerHTML = Bub.zoom
-}
-UI.updateFPS = function (deltaTime) {
-  this.fps = Math.round(1000 / deltaTime)
-  this.fpsNode.innerHTML = this.fps
+  let newZoom = Math.max(2, Bub.zoom - 0.0025 * deltaY * Bub.zoom)
+  Bub.zoom = Math.round(newZoom)
 }
 Bub.updatePoint = function (url, param) {
     // Detect point number
@@ -216,36 +194,31 @@ Bub.draw1 = function () {
 }
 Bub.draw2 = function () {
   let ctx = this.ctxs[2]
-  ctx.fillStyle = "#00000002"
-  ctx.fillRect(0, 0, this.width, this.height)
+  ctx.clearRect(0, 0, this.width, this.height)
 
-  ctx.beginPath()
-  
   let zRescale = 2000
   ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
+
+  ctx.beginPath()
   
   ctx.fillStyle = "hsl(" + this.step/5 + ", 60%, 40%)"
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
-    ctx.beginPath()
     let bubStart = this.bubble[startIndex]
     let bubEnd = this.bubble[b]
     let xyrStart = Bub.dataXYZtoCanvasXYR(bubStart.x, bubStart.y, bubStart.z * zRescale)
     let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zRescale)
-    ctx.moveTo(xyrStart.x, xyrStart.y)
+    //ctx.moveTo(xyrStart.x, xyrStart.y)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
     //ctx.arc(pt.x, pt.y, 3 * xyr.r, 0, 2 * Math.PI, false)
-    //ctx.fill()
-    ctx.lineWidth = .1 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
-    ctx.stroke()
+    ctx.fillStyle = "white"
+    ctx.fill()
   }
   
   ctx.closePath()
 }
 Bub.draw3 = function () {
   let ctx = this.ctxs[3]
-  ctx.clearRect(0, 0, this.width, this.height)
-
   let zRescale = 2000
   ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
 
@@ -268,32 +241,7 @@ Bub.draw3 = function () {
   ctx.closePath()
 }
 Bub.draw4 = function () {
-  //this.ctxs[4].clearRect(0, 0, this.cans[4].width, this.cans[4].height)
-
   let ctx = this.ctxs[4]
-  let zRescale = 2000
-  ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
-
-  ctx.beginPath()
-  
-  ctx.fillStyle = "hsl(" + this.step/5 + ", 60%, 40%)"
-  for (let b = 0; b < this.bubble.length; b++) {
-    let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
-    let bubStart = this.bubble[startIndex]
-    let bubEnd = this.bubble[b]
-    let xyrStart = Bub.dataXYZtoCanvasXYR(bubStart.x, bubStart.y, bubStart.z * zRescale)
-    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zRescale)
-    //ctx.moveTo(xyrStart.x, xyrStart.y)
-    ctx.lineTo(xyrEnd.x, xyrEnd.y)
-    //ctx.arc(pt.x, pt.y, 3 * xyr.r, 0, 2 * Math.PI, false)
-    ctx.fillStyle = "white"
-    ctx.fill()
-  }
-  
-  ctx.closePath()
-}
-Bub.draw5 = function () {
-  let ctx = this.ctxs[5]
   
   ctx.clearRect(0, 0, this.width, this.height)
 
@@ -306,6 +254,7 @@ Bub.draw5 = function () {
   ctx.strokeStyle = "#FFFA"
 
   let rScale = 200
+  ctx.lineWidth = 2
 
   // Draw inscribed circle
   ctx.beginPath()
@@ -321,16 +270,54 @@ Bub.draw5 = function () {
 
   // Draw circumscribed circle
   ctx.beginPath()
-  ctx.lineWidth = 2
   ctx.arc(baryXyr.x, baryXyr.y, rScale * rii.rMax, 0, 2 * Math.PI, false)
   ctx.stroke()
   ctx.closePath()
   
 
 }
+Bub.draw5 = function () {
+  let ctx = this.ctxs[5]
+  
+  ctx.clearRect(0, 0, this.width, this.height)
+
+  this.drawBarycenter(ctx)
+
+  let rii = this.getBubbleRadii()
+  let bary = this.getBubbleBarycenter()
+  let baryXyr = this.dataXYZtoCanvasXYR(bary.x, bary.y, bary.z)
+
+  ctx.strokeStyle = "#FFFA"
+  ctx.lineWidth = 2
+
+  let rScale = 200
+
+  let drawPentagon = (ctx, rad) => {
+    let x, y
+    let angle = -Math.PI / 2
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath()
+      x = baryXyr.x + rad * Math.cos(angle)
+      y = baryXyr.y + rad * Math.sin(angle)
+      ctx.moveTo(x, y)
+      angle += Math.PI * 2/5
+      x = baryXyr.x + rad * Math.cos(angle)
+      y = baryXyr.y + rad * Math.sin(angle)
+      ctx.lineTo(x, y)
+      ctx.stroke()
+    }
+    
+  }
+
+  // Draw inscribed, average and circumscribed pentagons
+  drawPentagon(ctx, rScale * rii.rMin)
+  drawPentagon(ctx, rScale * rii.rAvg)
+  drawPentagon(ctx, rScale * rii.rMax)
+  
+
+}
 Bub.clearCanvases = function () {
-  this.ctxs[2].clearRect(0, 0, this.width, this.height)
-  this.ctxs[4].clearRect(0, 0, this.width, this.height)
+  this.ctxs[3].clearRect(0, 0, this.width, this.height)
 }
 Bub.drawBarycenter = function (ctx) {
   let bary = this.getBubbleBarycenter()
@@ -362,6 +349,29 @@ Bub.dataXYZtoCanvasXYR = function (x, y, z) {
 	rr = Math.min(rr, 100 * this.dataToImageRatio3D)
 
 	return { x: xx, y: yy, r: rr }
+}
+Bub.update = function () {
+  this.step++
+}
+
+// Bub UI
+UI.setup = function () {
+  // Misc
+  this.fpsNode = document.getElementById("fps")
+  this.canvasesNodes = document.getElementsByTagName("canvas")
+
+  // Zoom
+  this.zoomValueNode = document.getElementById("zoom")
+  this.zoomMinusMinusNode = document.getElementById("zoom-minusminus")
+  this.zoomMinusNode = document.getElementById("zoom-minus")
+  this.zoomPlusNode = document.getElementById("zoom-plus")
+  this.zoomPlusPlusNode = document.getElementById("zoom-plusplus")
+
+  this.updateZoom()
+
+  this.fps = 0
+
+  this.initControlsListeners()
 }
 UI.initControlsListeners = function () {
 
@@ -428,9 +438,15 @@ UI.initControlsListeners = function () {
     //console.log("Dragging off")
   })
 }
-Bub.update = function () {
-  this.step++
+UI.updateZoom = function () {
+  this.zoomValueNode.innerHTML = Bub.zoom
 }
+UI.updateFPS = function (deltaTime) {
+  this.fps = Math.round(1000 / deltaTime)
+  this.fpsNode.innerHTML = this.fps
+}
+
+// Main methods
 let frame = () => {
   let startTime = new Date().getTime()
 
