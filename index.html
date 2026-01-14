@@ -1,0 +1,50 @@
+<!-- ANDRIX © 2026 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Latency Viz</title>
+
+	<!-- Meta stuff -->
+	<meta charset="utf-8" />
+	<meta name="keywords" content="OSC, latency, app, analysis, bubbles" />
+	<meta name="author" content="Alex Andrix" />
+	<meta name="description" content="Visualization app for Latency bubbles" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, target-densitydpi=device-dpi, minimum-scale=1" />
+	
+	<!-- Stylesheets -->
+	<link rel="stylesheet" type="text/css" href="./css/main.css" />
+
+</head>
+<body>
+
+	<header>
+		<h2>Controls</h2>
+
+		<div id="controls">
+			<div class="control" id="zoom-ctrl">
+				<div id="zoom-minusminus" class="square-btn minus">--</div>
+				<div id="zoom-minus" class="square-btn minus">-</div>
+				<div class="control-core">
+					<p>Zoom</p>
+					<p><span id="zoom">50</span></p>
+				</div>
+				<div id="zoom-plus" class="square-btn">+</div>
+				<div id="zoom-plusplus" class="square-btn">++</div>
+			</div>
+		</div>
+		
+		<div id="fps-container">
+			<p>FPS: <span id="fps">0</span></p>
+		</div>
+		
+					
+	</header>
+
+<!-- socket.io -->
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
+
+<!-- Our scripts -->
+<script type="text/javascript" src="./js/main.js"></script>
+<script type="text/javascript" src="./js/connect.js"></script>
+
+</body>

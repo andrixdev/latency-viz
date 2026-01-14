@@ -1,0 +1,129 @@
+// out: "./main.css"
+/* ANDRIX © 2026 */
+
+@font-face {
+    font-family: "Tangerine";
+    src: local("Tangerine"), url("../fonts/Tangerine-Regular.ttf");
+}
+@font-face {
+    font-family: "Raleway";
+    src: local("Raleway"), url("../fonts/Raleway-Regular.ttf");
+    font-weight: 400;
+}
+@font-face {
+    font-family: "Raleway";
+    src: local("Raleway Light"), url("../fonts/Raleway-Light.ttf");
+    font-weight: 300;
+}
+@font-face {
+    font-family: "Raleway";
+    src: local("Raleway ExtraLight"), url("../fonts/Raleway-ExtraLight.ttf");
+    font-weight: 200;
+}
+@font-face {
+    font-family: "Raleway";
+    src: local("Raleway Thin"), url("../fonts/Raleway-Thin.ttf");
+    font-weight: 100;
+}
+@font-face {
+    font-family: "Rationale";
+    src: local("Rationale"), url("../fonts/Rationale-Regular.ttf");
+    font-weight: 400;
+}
+p, a, label, h1, h2, h3, h4, button {
+    font-family: 'Tangerine', 'Raleway', 'Comic Sans MS', serif;
+    color: white;
+}
+
+html {
+    background: black;
+    overflow-x: hidden;
+}
+body {
+    display: flex;
+    flex-flow: row;
+    flex-wrap: wrap;
+    padding-top: 60px;
+    margin: 0;
+}
+canvas {
+    outline: 1px solid red;
+    margin: 10px;
+    border-radius: 1px;
+    cursor: crosshair;
+}
+header {
+    position: fixed;
+    top: 0;
+    height: 60px;
+    width: 100%;
+    background: black;
+    border-bottom: 1px solid #FFFA;
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-start;
+
+    h2 {
+        color: white;
+        font-size: 3rem;
+        margin: 10px 10px;
+        font-weight: 200;
+    }
+}
+#controls {
+
+}
+.control {
+    display: flex;
+    flex-flow: row;
+    margin: 0 10px;
+
+    .control-core {
+        align-self: center;
+        display: flex;
+        flex-flow: column;
+        margin: 0 .5em;
+
+        p {
+            margin: 0 0;
+            line-height: .5em;
+            font-size: 2rem;
+            text-align: center;
+        }
+    }
+}
+.square-btn {
+    max-width: 30px;
+    max-height: 17px;
+    min-width: 29px;
+    min-height: 18px;
+    margin: 5px;
+    border: 1px solid white;
+    color: white;
+    padding: 10px;
+    border-radius: 1px;
+    text-align: center;
+    line-height: 19px;
+    cursor: pointer;
+    user-select: none;
+    background: black;
+
+    &:hover:not(:active) {
+        border: 1px solid black;
+        filter: invert(1);
+    }
+
+    &.minus {
+
+    }
+
+    p {
+        
+    }
+}
+#fps-container {
+    p {
+        font-family: Rationale, Raleway, sans-serif;
+    }
+}
