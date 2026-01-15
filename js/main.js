@@ -340,7 +340,7 @@ Bub.draw2 = function (ctx) {
     ctx.beginPath()
     ctx.moveTo(xyrStart.x, xyrStart.y)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
-    ctx.lineWidth = 100 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
+    ctx.lineWidth = 0.15 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
     ctx.stroke()
   }
   
@@ -791,9 +791,15 @@ UI.updateFPS = function () {
   this.fpsNode.innerHTML = Bub.fps
 }
 
-// Main methods
+// Main 
+let stats = new Stats()
+stats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
+document.body.appendChild( stats.dom )
+
+
 let frame = () => {
-  let startTime = new Date().getTime()
+  //let startTime = performance.now()
+  stats.begin()
 
   Bub.update()
 
@@ -818,9 +824,10 @@ let frame = () => {
     
   }
 
-  let endTime = new Date().getTime()
+  //let endTime = performance.now()
+  stats.end()
 
-  Bub.updateFPS(endTime - startTime)
+  //Bub.updateFPS(endTime - startTime)
 
   if (Bub.step % 5 == 0) UI.updateFPS()
 
