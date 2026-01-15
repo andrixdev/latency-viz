@@ -1,6 +1,20 @@
-// Socket Connect, Maxime Touroute @2026
+// Socket Connect, Maxime Touroute x Alex Andrix @ 2026
 
-const socket = io("https://latency.maximetouroute.com:443");
+const queryString = window.location.search
+const urlParams = new URLSearchParams(queryString)
+let room = urlParams.get('room')
+
+let socketURL = ""
+if (room == 1) {
+	socketURL = "https://latency.maximetouroute.com:443"
+} else if (room == 2) {
+	socketURL = "https://haut.maximetouroute.com:443"
+} else {
+	console.error("Room id not recognized")
+	alert("Room id not recognized: " + room)
+}
+
+const socket = io(socketURL)
 
 // Listen for the 'connect' event
 socket.on('connect', () => {

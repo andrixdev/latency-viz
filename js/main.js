@@ -84,8 +84,8 @@ Bub.setup = function () {
 	this.zFarPlan = -10000
 
   this.zoom = 8000
-  this.xOffset = -200
-  this.yOffset = -200
+  this.xOffset = 0
+  this.yOffset = 0
 
   this.step = 0
 
@@ -129,7 +129,7 @@ Bub.updatePoint = function (url, param) {
     let coord = token2
 
     if (isPoint) {
-      Bub.bubble[nb - 1][coord] = param
+      Bub.bubble[nb - 1][coord] = param - 0.5
     }
 }
 Bub.updateFrame = function (bubbleFrame) {
@@ -137,9 +137,9 @@ Bub.updateFrame = function (bubbleFrame) {
   for (let i = 1; i <= 25; i++) {
     let pt = bubbleFrame["point" + i]
     Bub.bubble.push({
-      x: pt.x,
-      y: pt.y,
-      z: pt.z
+      x: pt.x - 0.5,
+      y: pt.y - 0.5,
+      z: pt.z - 0.5
     })
   }
 }
@@ -255,10 +255,10 @@ Bub.draw0 = function (ctx) {
     ctx.beginPath()
     let bubStart = this.bubble[startIndex]
     let bubEnd = this.bubble[b]
-    let xStart = xC + (bubStart.x - 0.5) * wid
-    let yStart = yC + (bubStart.y - 0.5) * hei
-    let xEnd = xC + (bubEnd.x - 0.5) * wid
-    let yEnd = yC + (bubEnd.y - 0.5) * hei
+    let xStart = xC + bubStart.x * wid
+    let yStart = yC + bubStart.y * hei
+    let xEnd = xC + bubEnd.x * wid
+    let yEnd = yC + bubEnd.y * hei
     ctx.moveTo(xStart, yStart)
     ctx.lineTo(xEnd, yEnd)
     ctx.stroke()
@@ -422,10 +422,12 @@ Bub.draw7 = function (ctx) {
 Bub.draw8 = function (ctx) {
   let xC = UI.isFullscreen ? Bub.xCf : Bub.xCm
   let yC = UI.isFullscreen ? Bub.yCf : Bub.yCm
+  let wid = UI.isFullscreen ? Bub.fullWidth : Bub.mosaicWidth
+  ctx.fillStyle = "#FFFD"
   if (this.energy > 0) {
     ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
     ctx.beginPath()
-    let rad = this.energy
+    let rad = this.energy * wid / 150
     ctx.arc(xC, yC, rad, 0, 2 * Math.PI, false)
     ctx.fill()
     ctx.closePath()
@@ -674,7 +676,9 @@ UI.initControlsListeners = function () {
 
   // Fullscreen toggle (space bar)
   window.addEventListener("keydown", ev => {
-    ev.preventDefault()
+    if (ev.code == "Space") {
+      ev.preventDefault()
+    }
   })
   window.addEventListener("keyup", ev => {
     if (ev.code == "Space") {
