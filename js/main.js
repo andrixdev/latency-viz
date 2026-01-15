@@ -3,6 +3,7 @@
  */
 
 let Bub = {}
+let Dust = {}
 let UI = {}
 
 // Bub logic
@@ -89,10 +90,14 @@ Bub.setup = function () {
 
   this.step = 0
 
+  // Bubble init
   this.bubble = []
   for (let i = 0; i < 10; i++) {
     this.bubble.push({ x: 0, y: 0, z: 0 })
   }
+
+  // Barycenter
+  this.bary = { x: 0, y: 0, z: 0 }
 
   // Bubble energy
   this.radii = 0
@@ -143,7 +148,7 @@ Bub.updateFrame = function (bubbleFrame) {
     })
   }
 }
-Bub.getBubbleBarycenter = function () {
+Bub.updateBarycenter = function () {
   // Compute barycenter
   let bary = {x: 0, y: 0, z: 0}
 
@@ -157,7 +162,7 @@ Bub.getBubbleBarycenter = function () {
   bary.y /= this.bubble.length
   bary.z /= this.bubble.length
 
-  return bary
+  this.bary = bary
 }
 Bub.getBubbleRadii = function () {
   let rMin = 999999
@@ -165,7 +170,7 @@ Bub.getBubbleRadii = function () {
   let rAverage
   let rSum = 0
 
-  let bary = this.getBubbleBarycenter()
+  let bary = this.bary
   this.bubble.forEach(pt => {
     let dx = bary.x - pt.x
     let dy = bary.y - pt.y
@@ -357,7 +362,7 @@ Bub.draw6 = function (ctx) {
   this.drawBarycenter(ctx)
 
   let rii = this.getBubbleRadii()
-  let bary = this.getBubbleBarycenter()
+  let bary = this.bary
   let baryXyr = this.dataXYZtoCanvasXYR(bary.x, bary.y, bary.z)
 
   ctx.strokeStyle = "#FFFA"
@@ -390,7 +395,7 @@ Bub.draw7 = function (ctx) {
   this.drawBarycenter(ctx)
 
   let rii = this.getBubbleRadii()
-  let bary = this.getBubbleBarycenter()
+  let bary = this.bary
   let baryXyr = this.dataXYZtoCanvasXYR(bary.x, bary.y, bary.z)
 
   ctx.strokeStyle = "#FFFA"
@@ -451,7 +456,7 @@ Bub.draw13 = function (ctx) {
 Bub.drawAura = function (ctx, mode) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   
-  let bary = this.getBubbleBarycenter()
+  let bary = this.bary
 
   let zRescale = 5000
   ctx.strokeStyle = mode == "iso" ? "#FFFA" : "hsl(210, 80%, 50%)"
@@ -502,7 +507,7 @@ Bub.drawDotField = function (ctx, mode) {
   let sensitivity = 1.5
   let amplitude = 0.4
 
-  let bary = Bub.getBubbleBarycenter()
+  let bary = Bub.bary
   let baryXY = {
     x: xC + wid * bary.x * sensitivity,
     y: yC + hei * bary.y * sensitivity
@@ -535,7 +540,7 @@ Bub.clearCanvases = function () {
   Bub.ctxs[5].clearRect(0, 0, Bub.fullWidth, Bub.fullHeight)
 }
 Bub.drawBarycenter = function (ctx) {
-  let bary = this.getBubbleBarycenter()
+  let bary = this.bary
 
   let xyr = this.dataXYZtoCanvasXYR(bary.x, bary.y, bary.z)
   ctx.beginPath()
@@ -569,6 +574,48 @@ Bub.dataXYZtoCanvasXYR = function (x, y, z) {
 
 	return { x: xx, y: yy, r: rr }
 }
+
+// Particle system
+Dust.setup = function () {
+  this.dustPop = 200
+  this.particles = []
+
+  for (let i = 0; i < this.dustPop; i++) {
+    this.particles.push({
+      age: 0,
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0
+    })
+  }
+}
+Dust.move = function () {
+  let dt = 0.1
+  this.particles.forEach(p => {
+    let xAcc = 0
+    let yAcc = 0
+    p.vx += xAcc * dt
+    p.vy += yAcc * dt
+    p.x += p.vx * dt
+    p.y += p.vy * dt
+
+    this.particles.age++
+  })
+}
+Dust.draw = function (ctx) {
+  ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
+  ctx.strokeStyle = "#FFFA"
+  this.particles.forEach(p => {
+    ctx.beginPath()
+    let x = 0
+    let y = 0
+    ctx.arc(x, y, 2, 0, 2 * Math.PI, false)
+    ctx.stroke()
+    ctx.closePath()
+  })
+}
+
 
 // Bub UI
 UI.setup = function () {
@@ -739,6 +786,13 @@ let frame = () => {
 
   Bub.update()
 
+  // Compute for all
+  if (Bub.step % 1 == 0) {
+    Bub.updateBubbleEnergy()
+    Bub.updateBarycenter()
+  }
+  
+  // Draw
   if (Bub.step % 1 == 0) {
     if (UI.isFullscreen) {
       // Draw only active canvas in fullscreen
@@ -753,10 +807,6 @@ let frame = () => {
     }
     
   }
-  
-  if (Bub.step % 1 == 0) {
-    Bub.updateBubbleEnergy()
-  }
 
   let endTime = new Date().getTime()
 
@@ -768,5 +818,6 @@ let frame = () => {
 }
 
 Bub.setup()
+Dust.setup()
 UI.setup()
 frame()

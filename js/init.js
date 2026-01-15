@@ -15,5 +15,6 @@ Init.vizMapping = {
 	"3d": 2,
 	"aura": 3,
 	"silhouette": 4,
-	"grid": 10
+	"grid": 10,
+	"grid-energy": 11
 }

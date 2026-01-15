@@ -1,4 +1,6 @@
-// Socket Connect, Maxime Touroute x Alex Andrix @ 2026
+/** 
+ * Socket Connect, Maxime Touroute x Alex Andrix @ 2026
+ */
 
 let socketURL = ""
 if (Init.room == 1) {
