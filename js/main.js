@@ -607,10 +607,13 @@ UI.setup = function () {
 
   // Fullscreen mode
   this.isFullscreen = false
+  this.activeCanvasID = 0
   if (Init.fullscreen == "1") {
     this.isFullscreen = true
+    if (Init.viz && Init.vizMapping[Init.viz]) {
+      this.activeCanvasID = Init.vizMapping[Init.viz]
+    }
   }
-  this.activeCanvasID = 0
 
   // Update fullscreen
   this.htmlNode.classList.toggle("fullscreen", this.isFullscreen)

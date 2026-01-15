@@ -10,8 +10,10 @@ Init.room = urlParams.get("room")
 Init.viz = urlParams.get("viz")
 Init.fullscreen = urlParams.get("fullscreen")
 
-/*Init.vizMapping = [
-	{ "3D":  
-
-	}
-]*/
+Init.vizMapping = {
+	"2d": 0,
+	"3d": 2,
+	"aura": 3,
+	"silhouette": 4,
+	"grid": 10
+}
