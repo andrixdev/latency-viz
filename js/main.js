@@ -607,7 +607,14 @@ UI.setup = function () {
 
   // Fullscreen mode
   this.isFullscreen = false
+  if (Init.fullscreen == "1") {
+    this.isFullscreen = true
+  }
   this.activeCanvasID = 0
+
+  // Update fullscreen
+  this.htmlNode.classList.toggle("fullscreen", this.isFullscreen)
+  this.updateFrontCaption()
 }
 UI.initControlsListeners = function () {
 
