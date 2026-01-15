@@ -7,21 +7,21 @@ let UI = {}
 
 // Bub logic
 Bub.setup = function () {
-  const inner = window.innerWidth
-  let size = 540//inner * (inner > 600 ? 0.42 : 0.97)
-  let dpr = window.devicePixelRatio
-  this.width = size
-	this.height = size * 9 / 16
-  
-  const body = document.getElementsByTagName("body")[0]
-  const main = document.getElementsByTagName("main")[0]
+  const mainNode = document.getElementsByTagName("main")[0]
+  const frontLayerNode = document.getElementById("front-layer")
 
-  this.cans = []
-  this.ctxs = []
-  this.canPop = 12
-  for (let c = 0; c < this.canPop; c++) {
+  // Create all mosaic canvases
+  let createCanvas = (id, type) => {
+    const w = window.innerWidth
+    const h = window.innerHeight
+    const mosaicWidth = 540
+    const mosaicHeight = mosaicWidth * 9 / 16
+    let dpr = window.devicePixelRatio
+    this.width = type == "mosaic" ? mosaicWidth : w
+    this.height = type == "mosaic" ? mosaicHeight : h
+
     let can = document.createElement("canvas")
-    can.id = "can-" + c
+    can.id = "can-" + id
     let ctx = can.getContext("2d")
     
     can.width = this.width * dpr
@@ -40,16 +40,35 @@ Bub.setup = function () {
     ctx.strokeStyle = "#FFF"
     ctx.lineWidth = 1
 
-    this.ctxs.push(ctx)
-    this.cans.push(can)
-    let container = document.createElement("div")
+    // Caption
     let caption = document.createElement("p")
     caption.id = can.id + "-caption"
     caption.classList = "caption"
-    container.appendChild(can)
-    container.appendChild(caption)
-    main.appendChild(container)
+
+    if (type == "mosaic") {
+      this.ctxs.push(ctx)
+      this.cans.push(can)
+      let container = document.createElement("div")
+      container.appendChild(can)
+      container.appendChild(caption)
+      mainNode.appendChild(container)
+    } else if (type == "fullscreen") {
+      this.frontCtx = ctx
+      frontLayerNode.appendChild(can)
+      frontLayerNode.appendChild(caption)
+    }
+    
   }
+  this.cans = []
+  this.ctxs = []
+  this.canPop = 14
+  this.frontCtx = undefined
+  for (let c = 0; c < this.canPop; c++) {
+    createCanvas(c, "mosaic")
+  }
+
+  // Create fullscreen canvas
+  createCanvas(999, "fullscreen")
 
 	this.dataToImageRatio3D = this.width / 5
   this.xC = this.width / 2
@@ -202,9 +221,24 @@ Bub.updateBubbleEnergy = function () {
   }
   
 }
-Bub.draw0 = function () {
-  let ctx = this.ctxs[0]
-
+Bub.draw = function (id, ctx) {
+  if (id == 0) Bub.draw0(ctx)
+  else if (id == 1) Bub.draw1(ctx)
+  else if (id == 2) Bub.draw2(ctx)
+  else if (id == 3) Bub.draw3(ctx)
+  else if (id == 4) Bub.draw4(ctx)
+  else if (id == 5) Bub.draw5(ctx)
+  else if (id == 6) Bub.draw6(ctx)
+  else if (id == 7) Bub.draw7(ctx)
+  else if (id == 8) Bub.draw8(ctx)
+  else if (id == 9) Bub.draw9(ctx)
+  else if (id == 10) Bub.draw10(ctx)
+  else if (id == 11) Bub.draw11(ctx)
+  else if (id == 12) Bub.draw12(ctx)
+  else if (id == 13) Bub.draw13(ctx)
+  else console.warn("id of Bub.draw() method not recognized: " + id)
+}
+Bub.draw0 = function (ctx) {
   ctx.clearRect(0, 0, this.width, this.height)
   
   for (let b = 0; b < this.bubble.length; b++) {
@@ -223,8 +257,7 @@ Bub.draw0 = function () {
   
   ctx.closePath()
 }
-Bub.draw1 = function () {
-  let ctx = this.ctxs[1]
+Bub.draw1 = function (ctx) {
   ctx.clearRect(0, 0, this.width, this.height)
   
   for (let b = 0; b < this.bubble.length; b++) {
@@ -243,8 +276,7 @@ Bub.draw1 = function () {
   
   ctx.closePath()
 }
-Bub.draw2 = function () {
-  let ctx = this.ctxs[2]
+Bub.draw2 = function (ctx) {
   ctx.clearRect(0, 0, this.width, this.height)
 
   let zRescale = 3000
@@ -266,11 +298,10 @@ Bub.draw2 = function () {
 
   this.drawBarycenter(ctx)
 }
-Bub.draw3 = function () {
-  this.drawAura(this.ctxs[3], "iso")
+Bub.draw3 = function (ctx) {
+  this.drawAura(ctx, "iso")
 }
-Bub.draw4 = function () {
-  let ctx = this.ctxs[4]
+Bub.draw4 = function (ctx) {
   ctx.clearRect(0, 0, this.width, this.height)
 
   let zRescale = 2000
@@ -294,8 +325,7 @@ Bub.draw4 = function () {
   
   ctx.closePath()
 }
-Bub.draw5 = function () {
-  let ctx = this.ctxs[5]
+Bub.draw5 = function (ctx) {
   let zRescale = 3000
   ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
 
@@ -317,9 +347,7 @@ Bub.draw5 = function () {
   
   ctx.closePath()
 }
-Bub.draw6 = function () {
-  let ctx = this.ctxs[6]
-  
+Bub.draw6 = function (ctx) {
   ctx.clearRect(0, 0, this.width, this.height)
 
   this.drawBarycenter(ctx)
@@ -351,11 +379,8 @@ Bub.draw6 = function () {
   ctx.stroke()
   ctx.closePath()
   
-
 }
-Bub.draw7 = function () {
-  let ctx = this.ctxs[7]
-  
+Bub.draw7 = function (ctx) {
   ctx.clearRect(0, 0, this.width, this.height)
 
   this.drawBarycenter(ctx)
@@ -391,8 +416,7 @@ Bub.draw7 = function () {
   drawPentagon(ctx, rScale * rii.rAvg)
   drawPentagon(ctx, rScale * rii.rMax)
 }
-Bub.draw8 = function () {
-  let ctx = this.ctxs[8]
+Bub.draw8 = function (ctx) {
   if (this.energy > 0) {
     ctx.clearRect(0, 0, this.width, this.height)
     ctx.beginPath()
@@ -402,15 +426,21 @@ Bub.draw8 = function () {
     ctx.closePath()
   }
 }
-Bub.draw9 = function () {
-  this.drawAura(this.ctxs[9], "energy")
+Bub.draw9 = function (ctx) {
+  this.drawAura(ctx, "energy")
 }
-Bub.draw10 = function () {
-  this.drawDotField(this.ctxs[10], "iso")
+Bub.draw10 = function (ctx) {
+  this.drawDotField(ctx, "iso")
 
 }
-Bub.draw11 = function () {
-  this.drawDotField(this.ctxs[11], "energy")
+Bub.draw11 = function (ctx) {
+  this.drawDotField(ctx, "energy")
+}
+Bub.draw12 = function (ctx) {
+  this.drawDotField(ctx, "mirror")
+}
+Bub.draw13 = function (ctx) {
+  
 }
 Bub.drawAura = function (ctx, mode) {
   ctx.clearRect(0, 0, this.width, this.height)
@@ -490,6 +520,17 @@ Bub.drawDotField = function (ctx, mode) {
       ctx.strokeStyle = "rgba(255, 255, 255, " + a + ")"
       ctx.stroke()
       ctx.closePath()
+
+      // Mirror
+      if (mode == "mirror") {
+        ctx.beginPath()
+        let xxMirror = this.width - xx
+        ctx.arc(xxMirror, yy, 1, 0, 2 * Math.PI, false)
+        ctx.strokeStyle = "hsla(0, 70%, 60%, " + a + ")"
+        ctx.stroke()
+        ctx.closePath()
+      }
+
     }
   }
 }
@@ -531,6 +572,7 @@ Bub.dataXYZtoCanvasXYR = function (x, y, z) {
 // Bub UI
 UI.setup = function () {
   // Misc
+  this.htmlNode = document.getElementsByTagName("html")[0]
   this.fpsNode = document.getElementById("fps")
   this.canvasesNodes = document.getElementsByTagName("canvas")
 
@@ -547,6 +589,10 @@ UI.setup = function () {
 
   this.initControlsListeners()
   this.initCaptions()
+
+  // Fullscreen mode
+  this.isFullscreen = false
+  this.activeCanvasID = 0
 }
 UI.initControlsListeners = function () {
 
@@ -612,20 +658,53 @@ UI.initControlsListeners = function () {
     Bub.clearCanvases()
     //console.log("Dragging off")
   })
+
+  // Fullscreen toggle (space bar)
+  window.addEventListener("keyup", ev => {
+    ev.preventDefault()
+    if (ev.code == "Space") {
+      UI.isFullscreen = !UI.isFullscreen
+      UI.htmlNode.classList.toggle("fullscreen")
+      UI.updateFrontCaption()
+    }
+    else if (ev.code == "ArrowLeft" && UI.isFullscreen) {
+      UI.activeCanvasID = (UI.activeCanvasID + 2 * Bub.canPop - 1) % Bub.canPop
+      UI.updateFrontCaption()
+    }
+    else if (ev.code == "ArrowRight" && UI.isFullscreen) {
+      UI.activeCanvasID = (UI.activeCanvasID + 2 * Bub.canPop + 1) % Bub.canPop
+      UI.updateFrontCaption()
+    }
+  })
 }
 UI.initCaptions = function () {
-  document.getElementById("can-0-caption").innerHTML = "2D"
-  document.getElementById("can-1-caption").innerHTML = "3D"
-  document.getElementById("can-2-caption").innerHTML = "3D depth"
-  document.getElementById("can-3-caption").innerHTML = "3D aura"
-  document.getElementById("can-4-caption").innerHTML = "Silhouette"
-  document.getElementById("can-5-caption").innerHTML = "Painting"
-  document.getElementById("can-6-caption").innerHTML = "Circles"
-  document.getElementById("can-7-caption").innerHTML = "Vitruvian"
-  document.getElementById("can-8-caption").innerHTML = "Energy"
-  document.getElementById("can-9-caption").innerHTML = "Aura Energy"
-  document.getElementById("can-10-caption").innerHTML = "Grid"
-  document.getElementById("can-11-caption").innerHTML = "Grid Energy"
+  this.captions = [
+    "2D",
+    "3D",
+    "3D depth",
+    "3D aura",
+    "Silhouette",
+    "Painting",
+    "Circles",
+    "Vitruvian",
+    "Energy",
+    "Aura Energy",
+    "Grid",
+    "Grid Energy",
+    "Mirror",
+    "Nada"
+  ]
+  for (let id = 0; id < Bub.canPop; id++) {
+    let caption = ""
+    if (id < this.captions.length) {
+      caption = this.captions[id]
+    }
+    document.getElementById("can-" + id + "-caption").innerHTML = caption
+  }
+
+}
+UI.updateFrontCaption = function () {
+  document.querySelector("#front-layer .caption").innerHTML = UI.captions[UI.activeCanvasID]
 }
 UI.updateZoom = function () {
   this.zoomValueNode.innerHTML = Bub.zoom
@@ -641,18 +720,17 @@ let frame = () => {
   Bub.update()
 
   if (Bub.step % 1 == 0) {
-    Bub.draw0()
-    Bub.draw1()
-    Bub.draw2()
-    Bub.draw3()
-    Bub.draw4()
-    Bub.draw5()
-    Bub.draw6()
-    Bub.draw7()
-    Bub.draw8()
-    Bub.draw9()
-    Bub.draw10()
-    Bub.draw11()
+    if (UI.isFullscreen) {
+      // Draw only active canvas in fullscreen
+      Bub.draw(UI.activeCanvasID, Bub.frontCtx)
+    } else {
+      // Draw all canvases in mosaic view
+      for (let id = 0; id < Bub.canPop; id++) {
+        let ctx = UI.isFullscreen ? Bub.frontCtx : Bub.ctxs[id]
+        Bub.draw(id, ctx)
+      }
+    }
+    
   }
   
   if (Bub.step % 1 == 0) {
