@@ -13,11 +13,12 @@ Bub.setup = function () {
   this.width = size
 	this.height = size * 9 / 16
   
-  let body = document.getElementsByTagName("body")[0]
+  const body = document.getElementsByTagName("body")[0]
+  const main = document.getElementsByTagName("main")[0]
 
   this.cans = []
   this.ctxs = []
-  this.canPop = 10
+  this.canPop = 12
   for (let c = 0; c < this.canPop; c++) {
     let can = document.createElement("canvas")
     can.id = "can-" + c
@@ -47,7 +48,7 @@ Bub.setup = function () {
     caption.classList = "caption"
     container.appendChild(can)
     container.appendChild(caption)
-    body.appendChild(container)
+    main.appendChild(container)
   }
 
 	this.dataToImageRatio3D = this.width / 5
@@ -65,15 +66,14 @@ Bub.setup = function () {
 
   this.step = 0
 
-  this.isBubbleReady = false
   this.bubble = []
   for (let i = 0; i < 10; i++) {
     this.bubble.push({ x: 0, y: 0, z: 0 })
   }
 
   // Bubble energy
-  this.bubbleRadii = 0
-  this.lastBubbleRadii = 0
+  this.radii = 0
+  this.lastRadii = 0
   this.historyLength = 6
   this.historyIndex = 0
   this.history = []
@@ -177,8 +177,8 @@ Bub.updateBubbleEnergy = function () {
   let beta = 1
   let gamma = 0
 
-  this.lastBubbleRadii = this.bubbleRadii
-  this.bubbleRadii = this.getBubbleRadii()
+  this.lastRadii = this.radii
+  this.radii = this.getBubbleRadii()
 
   // E = variation of weighted average of squares
 
@@ -186,8 +186,8 @@ Bub.updateBubbleEnergy = function () {
     return 1 / (alpha + beta + gamma) * (alpha * Math.pow(rii.rMin, 2) + beta * Math.pow(rii.rAvg, 2) + gamma * Math.pow(rii.rMax, 2))
   }
 
-  let newSquareSum = getSquareSum(this.bubbleRadii)
-  let lastSquareSum = getSquareSum(this.lastBubbleRadii)
+  let newSquareSum = getSquareSum(this.radii)
+  let lastSquareSum = getSquareSum(this.lastRadii)
   let E = Math.abs(newSquareSum - lastSquareSum)
   let sigma = 0.6
   let visualE = 3 * Math.pow(10000 * E, sigma)
@@ -247,7 +247,7 @@ Bub.draw2 = function () {
   let ctx = this.ctxs[2]
   ctx.clearRect(0, 0, this.width, this.height)
 
-  let zRescale = 2000
+  let zRescale = 3000
 
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
@@ -405,12 +405,19 @@ Bub.draw8 = function () {
 Bub.draw9 = function () {
   this.drawAura(this.ctxs[9], "energy")
 }
+Bub.draw10 = function () {
+  this.drawDotField(this.ctxs[10], "iso")
+
+}
+Bub.draw11 = function () {
+  this.drawDotField(this.ctxs[11], "energy")
+}
 Bub.drawAura = function (ctx, mode) {
   ctx.clearRect(0, 0, this.width, this.height)
   
   let bary = this.getBubbleBarycenter()
 
-  let zRescale = 1500
+  let zRescale = 5000
   ctx.strokeStyle = mode == "iso" ? "#FFFA" : "hsl(210, 80%, 50%)"
   let auraScale = mode == "iso" ? 1 : (0.08 + this.energy * 0.08)
 
@@ -445,7 +452,47 @@ Bub.drawAura = function (ctx, mode) {
 
   this.drawBarycenter(ctx)
 }
+Bub.drawDotField = function (ctx, mode) {
+  ctx.clearRect(0, 0, this.width, this.height)
+  ctx.lineWidth = 1
+  let xPop = 32//16
+  let yPop = 18//9
 
+  let bary = Bub.getBubbleBarycenter()
+  let baryXY = {
+    x: this.xC + this.width * (bary.x - 0.5) * 0.5,
+    y: this.yC + this.height * (bary.y - 0.5) * 0.5
+  }
+  let radii = Bub.radii
+
+  // Plot grid & repulsed grid
+  for (let j = 0; j < yPop; j++) {
+    for (let i = 0; i < xPop; i++) {
+      let x = this.width * (i + 0.5) / xPop
+      let y = this.height * (j + 0.5) / yPop
+
+      // Dot
+      ctx.beginPath()
+      ctx.strokeStyle = "hsl(200, 60%, 20%)"
+      ctx.arc(x, y, 1, 0, 2 * Math.PI, false)
+      ctx.stroke()
+      ctx.closePath()
+
+      // Translated dot
+      ctx.beginPath()
+      let distToBary = Math.sqrt(Math.pow(x - baryXY.x, 2) + Math.pow(y - baryXY.y, 2))
+      let deformationRadius = 200 * radii.rAvg * (mode == "iso" ? 1 : this.energy / 10)
+      let scale = Math.exp(-Math.pow(distToBary / deformationRadius, 2))
+      let xx = x + (x - baryXY.x) * scale
+      let yy = y + (y - baryXY.y) * scale
+      ctx.arc(xx, yy, 1, 0, 2 * Math.PI, false)
+      let a = Math.min(1, 0.6 + 1.5 * scale / 2) 
+      ctx.strokeStyle = "rgba(255, 255, 255, " + a + ")"
+      ctx.stroke()
+      ctx.closePath()
+    }
+  }
+}
 Bub.clearCanvases = function () {
   this.ctxs[5].clearRect(0, 0, this.width, this.height)
 }
@@ -577,6 +624,8 @@ UI.initCaptions = function () {
   document.getElementById("can-7-caption").innerHTML = "Vitruvian"
   document.getElementById("can-8-caption").innerHTML = "Energy"
   document.getElementById("can-9-caption").innerHTML = "Aura Energy"
+  document.getElementById("can-10-caption").innerHTML = "Grid"
+  document.getElementById("can-11-caption").innerHTML = "Grid Energy"
 }
 UI.updateZoom = function () {
   this.zoomValueNode.innerHTML = Bub.zoom
@@ -584,7 +633,6 @@ UI.updateZoom = function () {
 UI.updateFPS = function () {
   this.fpsNode.innerHTML = Bub.fps
 }
-
 
 // Main methods
 let frame = () => {
@@ -603,6 +651,8 @@ let frame = () => {
     Bub.draw7()
     Bub.draw8()
     Bub.draw9()
+    Bub.draw10()
+    Bub.draw11()
   }
   
   if (Bub.step % 1 == 0) {
