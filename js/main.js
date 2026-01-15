@@ -8,6 +8,7 @@ let UI = {}
 
 // Bub logic
 Bub.setup = function () {
+  this.htmlNode = document.getElementsByTagName("html")[0]
   const mainNode = document.getElementsByTagName("main")[0]
   const frontLayerNode = document.getElementById("front-layer")
   this.mosaicWidth = 540
@@ -18,6 +19,10 @@ Bub.setup = function () {
   this.yCm = this.mosaicHeight / 2
   this.xCf = this.fullWidth / 2
   this.yCf = this.fullHeight / 2
+  this.xC = this.xCm
+  this.yC = this.yCm
+  this.w = this.mosaicWidth
+  this.h = this.mosaicHeight
 
   // Create all mosaic canvases
   let createCanvas = (id, type) => {
@@ -78,6 +83,7 @@ Bub.setup = function () {
 
 	this.dataToImageRatio3Df = this.fullWidth / 5
 	this.dataToImageRatio3Dm = this.mosaicWidth / 5
+  this.dataToImageRatio3D = this.dataToImageRatio3Df
 	
 	// Depth properties in 3D world
 	this.cameraZ = 3000
@@ -106,9 +112,40 @@ Bub.setup = function () {
   this.historyIndex = 0
   this.history = []
   this.energy = 0 // Average of history
+
+  // Fullscreen mode
+  this.isFullscreen = false
+  this.activeCanvasID = 0
+  if (Init.fullscreen == "1") {
+    this.isFullscreen = true
+    if (Init.viz && Init.vizMapping[Init.viz]) {
+      this.activeCanvasID = Init.vizMapping[Init.viz]
+    }
+  }
+
+  // Update fullscreen
+  Bub.updateFullscreen()
 }
 Bub.update = function () {
   this.step++
+}
+Bub.toggleFullscreen = function () {
+  this.isFullscreen = !this.isFullscreen
+}
+Bub.updateFullscreen = function () {
+  if (this.isFullscreen) {
+    this.xC = this.xCf
+    this.yC = this.yCf
+    this.w = this.fullWidth
+    this.h = this.fullHeight
+    this.dataToImageRatio3D = this.dataToImageRatio3Df
+  } else {
+    this.xC = this.xCm
+    this.yC = this.yCm
+    this.w = this.mosaicWidth
+    this.h = this.mosaicHeight
+    this.dataToImageRatio3D = this.dataToImageRatio3Dm
+  }
 }
 Bub.updateFPS = function (deltaTime) {
   this.fps = Math.round(1000 / deltaTime)
@@ -251,19 +288,15 @@ Bub.draw0 = function (ctx) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   ctx.strokeStyle = "#FFFD"
   
-  let xC = UI.isFullscreen ? Bub.xCf : Bub.xCm
-  let yC = UI.isFullscreen ? Bub.yCf : Bub.yCm
-  let wid = UI.isFullscreen ? Bub.fullWidth : Bub.mosaicWidth
-  let hei = UI.isFullscreen ? Bub.fullHeight : Bub.mosaicHeight
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
     ctx.beginPath()
     let bubStart = this.bubble[startIndex]
     let bubEnd = this.bubble[b]
-    let xStart = xC + bubStart.x * wid
-    let yStart = yC + bubStart.y * hei
-    let xEnd = xC + bubEnd.x * wid
-    let yEnd = yC + bubEnd.y * hei
+    let xStart = this.xC + bubStart.x * this.w
+    let yStart = this.yC + bubStart.y * this.h
+    let xEnd = this.xC + bubEnd.x * this.w
+    let yEnd = this.yC + bubEnd.y * this.h
     ctx.moveTo(xStart, yStart)
     ctx.lineTo(xEnd, yEnd)
     ctx.stroke()
@@ -299,14 +332,15 @@ Bub.draw2 = function (ctx) {
 
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
-    ctx.beginPath()
     let bubStart = this.bubble[startIndex]
     let bubEnd = this.bubble[b]
     let xyrStart = Bub.dataXYZtoCanvasXYR(bubStart.x, bubStart.y, bubStart.z * zRescale)
     let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zRescale)
+
+    ctx.beginPath()
     ctx.moveTo(xyrStart.x, xyrStart.y)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
-    ctx.lineWidth = .15 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
+    ctx.lineWidth = 100 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
     ctx.stroke()
   }
   
@@ -367,7 +401,7 @@ Bub.draw6 = function (ctx) {
 
   ctx.strokeStyle = "#FFFA"
 
-  let rScale = 0.75 * (UI.isFullscreen ? Bub.fullWidth : Bub.mosaicWidth)
+  let rScale = 0.75 * Bub.w
   ctx.lineWidth = 2
 
   // Draw inscribed circle
@@ -399,7 +433,7 @@ Bub.draw7 = function (ctx) {
   let baryXyr = this.dataXYZtoCanvasXYR(bary.x, bary.y, bary.z)
 
   ctx.strokeStyle = "#FFFA"
-  let rScale = 0.75 * (UI.isFullscreen ? Bub.fullWidth : Bub.mosaicWidth)
+  let rScale = 0.75 * Bub.w
   ctx.lineWidth = 2
 
   let drawPentagon = (ctx, rad) => {
@@ -425,15 +459,12 @@ Bub.draw7 = function (ctx) {
   drawPentagon(ctx, rScale * rii.rMax)
 }
 Bub.draw8 = function (ctx) {
-  let xC = UI.isFullscreen ? Bub.xCf : Bub.xCm
-  let yC = UI.isFullscreen ? Bub.yCf : Bub.yCm
-  let wid = UI.isFullscreen ? Bub.fullWidth : Bub.mosaicWidth
   ctx.fillStyle = "#FFFD"
   if (this.energy > 0) {
     ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
     ctx.beginPath()
-    let rad = this.energy * wid / 150
-    ctx.arc(xC, yC, rad, 0, 2 * Math.PI, false)
+    let rad = this.energy * this.w / 150
+    ctx.arc(this.xC, this.yC, rad, 0, 2 * Math.PI, false)
     ctx.fill()
     ctx.closePath()
   }
@@ -468,8 +499,6 @@ Bub.drawAura = function (ctx, mode) {
       let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
       let bubStart = this.bubble[startIndex]
       let bubEnd = this.bubble[b]
-
-      ctx.beginPath()
       
       let x1 = bary.x + (bubStart.x - bary.x) * auraStep
       let y1 = bary.y + (bubStart.y - bary.y) * auraStep
@@ -482,6 +511,7 @@ Bub.drawAura = function (ctx, mode) {
       let xyrStart = Bub.dataXYZtoCanvasXYR(x1, y1, z1)
       let xyrEnd = Bub.dataXYZtoCanvasXYR(x2, y2, z2)
 
+      ctx.beginPath()
       ctx.moveTo(xyrStart.x, xyrStart.y)
       ctx.lineTo(xyrEnd.x, xyrEnd.y)
       ctx.lineWidth = .15 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
@@ -497,33 +527,29 @@ Bub.drawDotField = function (ctx, mode) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   let xPop = 64//16
   let yPop = ctx.canvas.height / ctx.canvas.width * xPop//18//9
-  let xC = UI.isFullscreen ? Bub.xCf : Bub.xCm
-  let yC = UI.isFullscreen ? Bub.yCf : Bub.yCm
-  let wid = UI.isFullscreen ? Bub.fullWidth : Bub.mosaicWidth
-  let hei = UI.isFullscreen ? Bub.fullHeight : Bub.mosaicHeight
 
-  ctx.lineWidth = wid / 300
+  ctx.lineWidth = this.w / 300
 
   let sensitivity = 1.5
   let amplitude = 0.4
 
   let bary = Bub.bary
   let baryXY = {
-    x: xC + wid * bary.x * sensitivity,
-    y: yC + hei * bary.y * sensitivity
+    x: this.xC + this.w * bary.x * sensitivity,
+    y: this.yC + this.h * bary.y * sensitivity
   }
   let radii = Bub.radii
 
   // Plot grid & repulsed grid
   for (let j = 0; j < yPop; j++) {
     for (let i = 0; i < xPop; i++) {
-      let x = wid * (i + 0.5) / xPop
-      let y = hei * (j + 0.5) / yPop
+      let x = this.w * (i + 0.5) / xPop
+      let y = this.h * (j + 0.5) / yPop
 
       // Translated dot
       ctx.beginPath()
       let distToBary = Math.sqrt(Math.pow(x - baryXY.x, 2) + Math.pow(y - baryXY.y, 2))
-      let deformationRadius = amplitude * wid * radii.rAvg * (mode == "iso" ? 1 : this.energy / 10)
+      let deformationRadius = amplitude * this.w * radii.rAvg * (mode == "iso" ? 1 : this.energy / 10)
       let scale = Math.exp(-Math.pow(distToBary / deformationRadius, 2))
       let xx = x + (x - baryXY.x) * scale
       let yy = y + (y - baryXY.y) * scale
@@ -532,7 +558,6 @@ Bub.drawDotField = function (ctx, mode) {
       ctx.strokeStyle = "rgba(255, 255, 255, " + a + ")"
       ctx.stroke()
       ctx.closePath()
-
     }
   }
 }
@@ -561,16 +586,11 @@ Bub.dataXYZtoCanvasXYR = function (x, y, z) {
 	let dE = 2 * Math.floor(depthEffect / 2)
 	
 	// From base [-500, 500] to [min(w,h), min(w,h)], here min = w for portrait
+	let xx = this.xC + this.xOffset + this.zoom * this.dataToImageRatio3D * (x) / (this.cameraZ - z)
+	let yy = this.yC + this.yOffset + this.zoom * this.dataToImageRatio3D * (y) / (this.cameraZ - z)
+	let rr = zCbaseRad * Math.pow((0 - this.cameraZ) / (this.cameraZ - z), dE) * this.dataToImageRatio3D
 
-  let xC = UI.isFullscreen ? this.xCf : this.xCm
-  let yC = UI.isFullscreen ? this.yCf : this.yCm
-  let dataToImageRatio3D = UI.isFullscreen ? this.dataToImageRatio3Df : this.dataToImageRatio3Dm
-	
-	let xx = xC + this.xOffset + this.zoom * dataToImageRatio3D * (x) / (this.cameraZ - z)
-	let yy = yC + this.yOffset + this.zoom * dataToImageRatio3D * (y) / (this.cameraZ - z)
-	let rr = zCbaseRad * Math.pow((0 - this.cameraZ) / (this.cameraZ - z), dE) * dataToImageRatio3D
-
-	rr = Math.min(rr, 100 * dataToImageRatio3D)
+	rr = Math.min(rr, 100 * this.dataToImageRatio3D)
 
 	return { x: xx, y: yy, r: rr }
 }
@@ -616,11 +636,9 @@ Dust.draw = function (ctx) {
   })
 }
 
-
 // Bub UI
 UI.setup = function () {
   // Misc
-  this.htmlNode = document.getElementsByTagName("html")[0]
   this.fpsNode = document.getElementById("fps")
   this.canvasesNodes = document.getElementsByTagName("canvas")
 
@@ -638,19 +656,8 @@ UI.setup = function () {
   this.initControlsListeners()
   this.initCaptions()
 
-  // Fullscreen mode
-  this.isFullscreen = false
-  this.activeCanvasID = 0
-  if (Init.fullscreen == "1") {
-    this.isFullscreen = true
-    if (Init.viz && Init.vizMapping[Init.viz]) {
-      this.activeCanvasID = Init.vizMapping[Init.viz]
-    }
-  }
-
-  // Update fullscreen
-  this.htmlNode.classList.toggle("fullscreen", this.isFullscreen)
-  this.updateFrontCaption()
+  // Fullscreen
+  UI.updateFullscreen()
 }
 UI.initControlsListeners = function () {
 
@@ -726,19 +733,19 @@ UI.initControlsListeners = function () {
   window.addEventListener("keyup", ev => {
     if (ev.code == "Space") {
       ev.preventDefault()
-      UI.isFullscreen = !UI.isFullscreen
-      UI.htmlNode.classList.toggle("fullscreen")
-      UI.updateFrontCaption()
+      Bub.toggleFullscreen()
+      Bub.updateFullscreen()
+      UI.updateFullscreen()
     }
-    else if (ev.code == "ArrowLeft" && UI.isFullscreen) {
+    else if (ev.code == "ArrowLeft" && Bub.isFullscreen) {
       ev.preventDefault()
-      UI.activeCanvasID = (UI.activeCanvasID + 2 * Bub.canPop - 1) % Bub.canPop
+      Bub.activeCanvasID = (Bub.activeCanvasID + 2 * Bub.canPop - 1) % Bub.canPop
       UI.updateFrontCaption()
       Bub.frontCtx.clearRect(0, 0, this.fullWidth, this.fullHeight)
     }
-    else if (ev.code == "ArrowRight" && UI.isFullscreen) {
+    else if (ev.code == "ArrowRight" && Bub.isFullscreen) {
       ev.preventDefault()
-      UI.activeCanvasID = (UI.activeCanvasID + 2 * Bub.canPop + 1) % Bub.canPop
+      Bub.activeCanvasID = (Bub.activeCanvasID + 2 * Bub.canPop + 1) % Bub.canPop
       UI.updateFrontCaption()
       Bub.frontCtx.clearRect(0, 0, Bub.fullWidth, Bub.fullHeight)
     }
@@ -770,8 +777,12 @@ UI.initCaptions = function () {
   }
 
 }
+UI.updateFullscreen = function () {
+  Bub.htmlNode.classList.toggle("fullscreen", Bub.isFullscreen)
+  this.updateFrontCaption()
+}
 UI.updateFrontCaption = function () {
-  document.querySelector("#front-layer .caption").innerHTML = UI.captions[UI.activeCanvasID]
+  document.querySelector("#front-layer .caption").innerHTML = UI.captions[Bub.activeCanvasID]
 }
 UI.updateZoom = function () {
   this.zoomValueNode.innerHTML = Bub.zoom
@@ -794,14 +805,13 @@ let frame = () => {
   
   // Draw
   if (Bub.step % 1 == 0) {
-    if (UI.isFullscreen) {
+    if (Bub.isFullscreen) {
       // Draw only active canvas in fullscreen
-      Bub.draw(UI.activeCanvasID, Bub.frontCtx)
+      Bub.draw(Bub.activeCanvasID, Bub.frontCtx)
     } else {
       // Draw all canvases in mosaic view
       for (let id = 0; id < Bub.canPop; id++) {
-      //for (let id = 0; id < 3; id++) {
-        let ctx = UI.isFullscreen ? Bub.frontCtx : Bub.ctxs[id]
+        let ctx = Bub.isFullscreen ? Bub.frontCtx : Bub.ctxs[id]
         Bub.draw(id, ctx)
       }
     }
