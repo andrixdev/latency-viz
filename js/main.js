@@ -290,7 +290,7 @@ Bub.draw2 = function (ctx) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   ctx.strokeStyle = "#FFFD"
 
-  let zRescale = 3000
+  let zRescale = 5000
 
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
@@ -443,7 +443,7 @@ Bub.draw11 = function (ctx) {
   this.drawDotField(ctx, "energy")
 }
 Bub.draw12 = function (ctx) {
-  this.drawDotField(ctx, "mirror")
+  
 }
 Bub.draw13 = function (ctx) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
@@ -490,7 +490,7 @@ Bub.drawAura = function (ctx, mode) {
 }
 Bub.drawDotField = function (ctx, mode) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
-  let xPop = 32//16
+  let xPop = 64//16
   let yPop = ctx.canvas.height / ctx.canvas.width * xPop//18//9
   let xC = UI.isFullscreen ? Bub.xCf : Bub.xCm
   let yC = UI.isFullscreen ? Bub.yCf : Bub.yCm
@@ -499,10 +499,13 @@ Bub.drawDotField = function (ctx, mode) {
 
   ctx.lineWidth = wid / 300
 
+  let sensitivity = 1.5
+  let amplitude = 0.4
+
   let bary = Bub.getBubbleBarycenter()
   let baryXY = {
-    x: xC + wid * (bary.x - 0.5) * 0.5,
-    y: yC + hei * (bary.y - 0.5) * 0.5
+    x: xC + wid * bary.x * sensitivity,
+    y: yC + hei * bary.y * sensitivity
   }
   let radii = Bub.radii
 
@@ -512,17 +515,10 @@ Bub.drawDotField = function (ctx, mode) {
       let x = wid * (i + 0.5) / xPop
       let y = hei * (j + 0.5) / yPop
 
-      // Dot
-      ctx.beginPath()
-      ctx.strokeStyle = "hsl(200, 60%, 20%)"
-      ctx.arc(x, y, 1, 0, 2 * Math.PI, false)
-      ctx.stroke()
-      ctx.closePath()
-
       // Translated dot
       ctx.beginPath()
       let distToBary = Math.sqrt(Math.pow(x - baryXY.x, 2) + Math.pow(y - baryXY.y, 2))
-      let deformationRadius = 0.5 * wid * radii.rAvg * (mode == "iso" ? 1 : this.energy / 10)
+      let deformationRadius = amplitude * wid * radii.rAvg * (mode == "iso" ? 1 : this.energy / 10)
       let scale = Math.exp(-Math.pow(distToBary / deformationRadius, 2))
       let xx = x + (x - baryXY.x) * scale
       let yy = y + (y - baryXY.y) * scale
@@ -532,21 +528,11 @@ Bub.drawDotField = function (ctx, mode) {
       ctx.stroke()
       ctx.closePath()
 
-      // Mirror
-      if (mode == "mirror") {
-        ctx.beginPath()
-        let xxMirror = wid - xx
-        ctx.arc(xxMirror, yy, 1, 0, 2 * Math.PI, false)
-        ctx.strokeStyle = "hsla(0, 70%, 60%, " + a + ")"
-        ctx.stroke()
-        ctx.closePath()
-      }
-
     }
   }
 }
 Bub.clearCanvases = function () {
-  this.ctxs[5].clearRect(0, 0, this.width, this.height)
+  Bub.ctxs[5].clearRect(0, 0, Bub.fullWidth, Bub.fullHeight)
 }
 Bub.drawBarycenter = function (ctx) {
   let bary = this.getBubbleBarycenter()
@@ -701,11 +687,13 @@ UI.initControlsListeners = function () {
       ev.preventDefault()
       UI.activeCanvasID = (UI.activeCanvasID + 2 * Bub.canPop - 1) % Bub.canPop
       UI.updateFrontCaption()
+      Bub.frontCtx.clearRect(0, 0, this.fullWidth, this.fullHeight)
     }
     else if (ev.code == "ArrowRight" && UI.isFullscreen) {
       ev.preventDefault()
       UI.activeCanvasID = (UI.activeCanvasID + 2 * Bub.canPop + 1) % Bub.canPop
       UI.updateFrontCaption()
+      Bub.frontCtx.clearRect(0, 0, Bub.fullWidth, Bub.fullHeight)
     }
   })
 }
@@ -723,7 +711,7 @@ UI.initCaptions = function () {
     "Aura Energy",
     "Grid",
     "Grid Energy",
-    "Mirror",
+    "Nada",
     "Nada"
   ]
   for (let id = 0; id < Bub.canPop; id++) {
