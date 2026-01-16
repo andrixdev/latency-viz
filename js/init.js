@@ -12,9 +12,15 @@ Init.fullscreen = urlParams.get("fullscreen")
 
 Init.vizMapping = {
 	"2d": 0,
-	"3d": 2,
+	"3d": 1,
+	"3d-depth": 2,
 	"aura": 3,
 	"silhouette": 4,
+	"painting": 5,
+	"circles": 6,
+	"vitruvian": 7,
+	"energy": 8,
+	"aura-energy": 9,
 	"grid": 10,
 	"grid-energy": 11,
 	"rain": 12,

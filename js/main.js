@@ -24,12 +24,15 @@ Bub.setup = function () {
   this.w = this.mosaicWidth
   this.h = this.mosaicHeight
 
-  // Livermaker control parameters: zoom, position offsets (xyz), zRescale
+  // Livermaker control parameters: zoom, position offsets (xyz), zScale
   this.zoom = 8000
   this.xOffset = 0
   this.yOffset = 0
   this.zOffset = 0
-  this.zRescale = 4000
+  this.zScale = 4000
+  this.a = undefined
+  this.b = undefined
+  this.c = undefined
 
   // Create all mosaic canvases
   let createCanvas = (id, type) => {
@@ -152,13 +155,16 @@ Bub.updateFullscreen = function () {
     this.dataToImageRatio3D = this.dataToImageRatio3Dm
   }
 }
-Bub.updateLivermakerControls = function (liveMakerState) {
-  console.log("Bub log of liveMakerState", liveMakerState)
-  Bub.zoom = 8000
-  Bub.xOffset = 0
-  Bub.yOffset = 0
-  Bub.zOffset = 0
-  Bub.zRescale = 4000
+Bub.updateLivermakerControls = function (lmState) {
+  console.log("Bub log of liveMakerState", lmState)
+  Bub.zoom = lmState["uiPage.latency.alex.zoom"]
+  Bub.xOffset = lmState["uiPage.latency.alex.xOffset"]
+  Bub.yOffset = lmState["uiPage.latency.alex.yOffset"]
+  Bub.zOffset = lmState["uiPage.latency.alex.zOffset"]
+  Bub.zScale = lmState["uiPage.latency.alex.zScale"]
+  Bub.a = lmState["uiPage.latency.alex.a"]
+  Bub.b = lmState["uiPage.latency.alex.b"]
+  Bub.c = lmState["uiPage.latency.alex.c"]
 }
 Bub.updateFPS = function (deltaTime) {
   this.fps = Math.round(1000 / deltaTime)
@@ -344,14 +350,14 @@ Bub.draw2 = function (ctx) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   ctx.strokeStyle = "#FFFD"
 
-  let zRescale = this.zRescale
+  let zScale = this.zScale
 
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
     let bubStart = this.bubble[startIndex]
     let bubEnd = this.bubble[b]
-    let xyrStart = Bub.dataXYZtoCanvasXYR(bubStart.x, bubStart.y, bubStart.z * zRescale)
-    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zRescale)
+    let xyrStart = Bub.dataXYZtoCanvasXYR(bubStart.x, bubStart.y, bubStart.z * zScale)
+    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zScale)
 
     ctx.beginPath()
     ctx.moveTo(xyrStart.x, xyrStart.y)
@@ -370,7 +376,7 @@ Bub.draw3 = function (ctx) {
 Bub.draw4 = function (ctx) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
 
-  let zRescale = this.zRescale
+  let zScale = this.zScale
 
   ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
 
@@ -380,7 +386,7 @@ Bub.draw4 = function (ctx) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
     let bubStart = this.bubble[startIndex]
     let bubEnd = this.bubble[b]
-    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zRescale)
+    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zScale)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
     ctx.fillStyle = "white"
     ctx.fill()
@@ -389,7 +395,7 @@ Bub.draw4 = function (ctx) {
   ctx.closePath()
 }
 Bub.draw5 = function (ctx) {
-  let zRescale = this.zRescale
+  let zScale = this.zScale
 
   ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
 
@@ -398,7 +404,7 @@ Bub.draw5 = function (ctx) {
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
     let bubEnd = this.bubble[b]
-    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zRescale)
+    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zScale)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
     ctx.fillStyle = "white"
     ctx.fill()
@@ -527,7 +533,7 @@ Bub.drawAura = function (ctx, mode) {
   
   let bary = this.bary
 
-  let zRescale = 3000
+  let zScale = 3000
   ctx.strokeStyle = mode == "iso" ? "#FFFA" : "hsl(210, 80%, 50%)"
   let auraScale = mode == "iso" ? 1 : (0.08 + this.energy * 0.08)
 
@@ -540,11 +546,11 @@ Bub.drawAura = function (ctx, mode) {
       
       let x1 = bary.x + (bubStart.x - bary.x) * auraStep
       let y1 = bary.y + (bubStart.y - bary.y) * auraStep
-      let z1 = bary.z + ((bubStart.z - bary.z) * auraStep) * zRescale
+      let z1 = bary.z + ((bubStart.z - bary.z) * auraStep) * zScale
       
       let x2 = bary.x + (bubEnd.x - bary.x) * auraStep
       let y2 = bary.y + (bubEnd.y - bary.y) * auraStep
-      let z2 = bary.z + ((bubEnd.z - bary.z) * auraStep) * zRescale
+      let z2 = bary.z + ((bubEnd.z - bary.z) * auraStep) * zScale
 
       let xyrStart = Bub.dataXYZtoCanvasXYR(x1, y1, z1)
       let xyrEnd = Bub.dataXYZtoCanvasXYR(x2, y2, z2)
@@ -1026,6 +1032,7 @@ UI.updateFPS = function () {
   this.fpsNode.innerHTML = Bub.fps
 }
 
+// Utils
 let Utils = {}
 Utils.segmentAngleRad = (Xstart, Ystart, Xtarget, Ytarget, realOrWeb) => {
 	/**
