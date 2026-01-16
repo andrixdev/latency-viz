@@ -72,7 +72,7 @@ Bub.setup = function () {
   }
   this.cans = []
   this.ctxs = []
-  this.canPop = 14
+  this.canPop = 18
   this.frontCtx = undefined
   for (let c = 0; c < this.canPop; c++) {
     createCanvas(c, "mosaic")
@@ -128,6 +128,8 @@ Bub.setup = function () {
 }
 Bub.update = function () {
   this.step++
+  this.updateBubbleEnergy()
+  this.updateBarycenter()
 }
 Bub.toggleFullscreen = function () {
   this.isFullscreen = !this.isFullscreen
@@ -282,6 +284,10 @@ Bub.draw = function (id, ctx) {
   else if (id == 11) Bub.draw11(ctx)
   else if (id == 12) Bub.draw12(ctx)
   else if (id == 13) Bub.draw13(ctx)
+  else if (id == 14) Bub.draw14(ctx)
+  else if (id == 15) Bub.draw15(ctx)
+  else if (id == 16) Bub.draw16(ctx)
+  else if (id == 17) Bub.draw17(ctx)
   else console.warn("id of Bub.draw() method not recognized: " + id)
 }
 Bub.draw0 = function (ctx) {
@@ -479,17 +485,35 @@ Bub.draw11 = function (ctx) {
   this.drawDotField(ctx, "energy")
 }
 Bub.draw12 = function (ctx) {
-  
+  Dust.evolve("rain")
+  Dust.draw(ctx)
 }
 Bub.draw13 = function (ctx) {
-  ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
+  Dust.evolve("attract")
+  Dust.draw(ctx)
+}
+Bub.draw14 = function (ctx) {
+  Dust.evolve("vortex")
+  Dust.draw(ctx)
+}
+Bub.draw15 = function (ctx) {
+  Dust.evolve("vortex")// tempest
+  Dust.draw(ctx)
+}
+Bub.draw16 = function (ctx) {
+  Dust.evolve("vortex")// trails
+  Dust.draw(ctx)
+}
+Bub.draw17 = function (ctx) {
+  Dust.evolve("vortex")// trails gravity
+  Dust.draw(ctx)
 }
 Bub.drawAura = function (ctx, mode) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   
   let bary = this.bary
 
-  let zRescale = 5000
+  let zRescale = 3000
   ctx.strokeStyle = mode == "iso" ? "#FFFA" : "hsl(210, 80%, 50%)"
   let auraScale = mode == "iso" ? 1 : (0.08 + this.energy * 0.08)
 
@@ -597,41 +621,127 @@ Bub.dataXYZtoCanvasXYR = function (x, y, z) {
 
 // Particle system
 Dust.setup = function () {
-  this.dustPop = 200
+  this.dustPop = 1200
   this.particles = []
-
-  for (let i = 0; i < this.dustPop; i++) {
-    this.particles.push({
-      age: 0,
-      x: 0,
-      y: 0,
-      vx: 0,
-      vy: 0
-    })
-  }
+  this.spawnRate = 3
 }
-Dust.move = function () {
+Dust.evolve = function (style) {
+  for (let i = 0; i < this.spawnRate; i++) {
+    if (this.particles.length < this.dustPop) this.spawn(style)
+  }
+  this.move(style)
+}
+Dust.spawn = function (style) {
+  let id = Math.floor(1000000 * Math.random())
+  this.particles.push({
+    x: Bub.w * Math.random(),
+    y: Bub.h * Math.random(),
+    vx: 0,
+    vy: 0,
+    lum: 30 + 60 * Math.random(),
+    size: Math.random() < 0.9 ? 1 : 3,
+    lifetime: 400 + 400 * Math.random(),
+    name: 'seed-' + Bub.step + '-' + id,
+    age: 0
+  })
+}
+Dust.kill = function (deadParticleName) {
+	this.particles = this.particles.filter(p => p.name !== deadParticleName)
+}
+Dust.killAll = function () {
+  this.particles = []
+}
+Dust.move = function (style) {
   let dt = 0.1
+  let g = 1
+  let mu = style == "attract" ? 3 : 0
+  let rainRepulse = style == "rain" ? 3 : 0
+  let r0 = 0.01 * Bub.w
+  let baryXY = {
+    x: Bub.xC + Bub.bary.x * Bub.w,
+    y: Bub.yC + Bub.bary.y * Bub.h
+  }
+  this.eddies = [{
+    x: baryXY.x,
+    y: baryXY.y,
+    r0: 0.1 * Bub.w
+  }]
+  let vorticity = style == "vortex" ? 10 : 0
+  let visc = style == "vortex" ? .1 : 0
+  let w = Bub.w
+  let h = Bub.h
   this.particles.forEach(p => {
+    let dist = Math.sqrt(Math.pow(baryXY.x - p.x, 2) + Math.pow(baryXY.y - p.y, 2))
+    let dx = baryXY.x - p.x
+    let dy = baryXY.y - p.y
     let xAcc = 0
-    let yAcc = 0
+    let yAcc = g
+
+    // Attraction
+    xAcc += mu * dx / Math.pow(dist / r0, 3)
+    yAcc += mu * dy / Math.pow(dist / r0, 3)
+
+    // Update velocities
     p.vx += xAcc * dt
     p.vy += yAcc * dt
+
+    // Rain
+    p.vx += -rainRepulse * Math.sign(dx) * Math.exp(-Math.pow(dist/r0, 2))
+
+    // Vortices
+		for (let e = 0; e < this.eddies.length; e++) {
+			let eddy = this.eddies[e]
+			let dx = p.x - eddy.x,
+			dy = p.y - eddy.y,
+			r = Math.sqrt(dx*dx + dy*dy),
+			theta = Utils.segmentAngleRad(0, 0, dx, dy, true),
+			cos = Math.cos(theta), sin = Math.sin(theta),
+			r0 = eddy.r0
+			
+			let er = { x: cos, y: sin },
+				eO = { x: -sin, y: cos }
+				
+			let radialVelocity = -0.003 * Math.abs(dx*dy)/3000,
+				sigma = 100,
+				azimutalVelocity = Math.exp(-Math.pow((r - r0) / sigma, 2))
+			
+			p.vx += vorticity * (radialVelocity * er.x + azimutalVelocity * eO.x)
+			p.vy += vorticity * (radialVelocity * er.y + azimutalVelocity * eO.y)
+		}
+		
+		// Viscosity
+		p.vx *= (1 - visc)
+    p.vy *= (1 - visc)
+
     p.x += p.vx * dt
     p.y += p.vy * dt
 
-    this.particles.age++
+    p.age++
+
+    // Kill if too old
+    if (p.age > p.lifetime) {
+      this.kill(p.name)
+    }
+    // Kill if out of sight (with extra space outside canvas)
+    if (p.x < -1*w || p.x > 2*w || p.y < -1*h || p.y > 2*h) {
+      this.kill(p.name)
+    }
+
   })
 }
 Dust.draw = function (ctx) {
-  ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
+  ctx.fillStyle = "rgba(0, 0, 0, 0.05)"
+  ctx.fillRect(0, 0, Bub.fullWidth, Bub.fullHeight)
+
   ctx.strokeStyle = "#FFFA"
+
   this.particles.forEach(p => {
     ctx.beginPath()
-    let x = 0
-    let y = 0
-    ctx.arc(x, y, 2, 0, 2 * Math.PI, false)
-    ctx.stroke()
+    let x = p.x
+    let y = p.y
+    ctx.arc(x, y, p.size / 1.5, 0, 2 * Math.PI, false)
+    ctx.fillStyle = "hsl(205, 85%, " + p.lum + "%)"
+    ctx.fill()
     ctx.closePath()
   })
 }
@@ -695,7 +805,7 @@ UI.initControlsListeners = function () {
   UI.lastXoffset = Bub.xOffset
   UI.lastYoffset = Bub.yOffset
 
-  // Pointer down
+  // 3D drag pointer down
   Array.from(this.canvasesNodes).forEach(el => {
     el.addEventListener("pointerdown", ev => {
       UI.dragging = true
@@ -704,7 +814,7 @@ UI.initControlsListeners = function () {
       UI.dragY = ev.clientY
     })
   })
-  // Pointer move
+  // 3D drag pointer move
   window.addEventListener("pointermove", ev => {
     if (UI.dragging) {
       let dx = ev.clientX - UI.dragX
@@ -713,7 +823,7 @@ UI.initControlsListeners = function () {
       Bub.yOffset = UI.lastYoffset + dy
     }
   })
-  // Pointer up
+  // 3D drag pointer up
   window.addEventListener("pointerup", ev => {
     UI.dragging = false
     UI.dragX = null
@@ -736,12 +846,13 @@ UI.initControlsListeners = function () {
       Bub.toggleFullscreen()
       Bub.updateFullscreen()
       UI.updateFullscreen()
+      Dust.killAll()
     }
     else if (ev.code == "ArrowLeft" && Bub.isFullscreen) {
       ev.preventDefault()
       Bub.activeCanvasID = (Bub.activeCanvasID + 2 * Bub.canPop - 1) % Bub.canPop
       UI.updateFrontCaption()
-      Bub.frontCtx.clearRect(0, 0, this.fullWidth, this.fullHeight)
+      Bub.frontCtx.clearRect(0, 0, Bub.fullWidth, Bub.fullHeight)
     }
     else if (ev.code == "ArrowRight" && Bub.isFullscreen) {
       ev.preventDefault()
@@ -765,8 +876,12 @@ UI.initCaptions = function () {
     "Aura Energy",
     "Grid",
     "Grid Energy",
-    "Nada",
-    "Nada"
+    "Rain",
+    "Attraction",
+    "Vortex",
+    "Tempest",
+    "Trail",
+    "Trail Gravity"
   ]
   for (let id = 0; id < Bub.canPop; id++) {
     let caption = ""
@@ -791,6 +906,40 @@ UI.updateFPS = function () {
   this.fpsNode.innerHTML = Bub.fps
 }
 
+let Utils = {}
+Utils.segmentAngleRad = (Xstart, Ystart, Xtarget, Ytarget, realOrWeb) => {
+	/**
+	 * @param {Number} Xstart X value of the segment starting point
+	 * @param {Number} Ystart Y value of the segment starting point
+	 * @param {Number} Xtarget X value of the segment target point
+	 * @param {Number} Ytarget Y value of the segment target point
+	 * @param {Boolean} realOrWeb true if Real (Y towards top), false if Web (Y towards bottom)
+	 * @returns {Number} Angle between 0 and 2PI
+	 */
+	let result// Will range between 0 and 2PI
+	if (Xstart == Xtarget) {
+		if (Ystart == Ytarget) {
+			result = 0 
+		} else if (Ystart < Ytarget) {
+			result = Math.PI/2
+		} else if (Ystart > Ytarget) {
+			result = 3*Math.PI/2
+		} else {}
+	} else if (Xstart < Xtarget) {
+		result = Math.atan((Ytarget - Ystart)/(Xtarget - Xstart))
+	} else if (Xstart > Xtarget) {
+		result = Math.PI + Math.atan((Ytarget - Ystart)/(Xtarget - Xstart))
+	}
+	
+	result = (result + 2*Math.PI)%(2*Math.PI)
+	
+	if (!realOrWeb) {
+		result = 2*Math.PI - result
+	}
+	
+	return result
+}
+
 // Main 
 let stats = new Stats()
 stats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -801,12 +950,9 @@ let frame = () => {
   //let startTime = performance.now()
   stats.begin()
 
-  Bub.update()
-
-  // Compute for all
+  // Compute bubble data
   if (Bub.step % 1 == 0) {
-    Bub.updateBubbleEnergy()
-    Bub.updateBarycenter()
+    Bub.update()
   }
   
   // Draw

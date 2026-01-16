@@ -166,6 +166,7 @@ header #controls {
   filter: invert(1);
 }
 #fps-container {
+  display: none;
   position: fixed;
   right: 20px;
   top: 15px;
