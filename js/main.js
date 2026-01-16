@@ -885,6 +885,7 @@ UI.setup = function () {
   // Misc
   this.fpsNode = document.getElementById("fps")
   this.canvasesNodes = document.getElementsByTagName("canvas")
+  this.frontCaptionNode = document.querySelector("#front-layer .caption")
 
   // Zoom
   this.zoomValueNode = document.getElementById("zoom")
@@ -900,8 +901,19 @@ UI.setup = function () {
   this.initControlsListeners()
   this.initCaptions()
 
+
   // Fullscreen
   UI.updateFullscreen()
+
+  // Stats (external add-on)
+  this.stats = new Stats()
+  if (this.stats) {
+    this.stats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
+    this.stats.dom.id = "stats"
+    document.body.appendChild(this.stats.dom)
+  }
+  this.statsNode = document.getElementById("stats")
+  UI.updateStats()
 }
 UI.initControlsListeners = function () {
 
@@ -1024,6 +1036,10 @@ UI.initCaptions = function () {
     document.getElementById("can-" + id + "-caption").innerHTML = caption
   }
 
+  // Toggle visibility depending on url param
+  if (Init.captions != undefined) {
+    this.frontCaptionNode.classList.toggle("hidden", Init.captions == 0)
+  }
 }
 UI.updateFullscreen = function () {
   Bub.htmlNode.classList.toggle("fullscreen", Bub.isFullscreen)
@@ -1037,6 +1053,12 @@ UI.updateZoom = function () {
 }
 UI.updateFPS = function () {
   this.fpsNode.innerHTML = Bub.fps
+}
+UI.updateStats = function () {
+  if (Init.stats) {
+    console.log(this.frontCaptionNode)
+    this.statsNode.classList.toggle("visible", Init.stats == 1)
+  }
 }
 
 // Utils
@@ -1074,14 +1096,9 @@ Utils.segmentAngleRad = (Xstart, Ystart, Xtarget, Ytarget, realOrWeb) => {
 	return result
 }
 
-// Main 
-let stats = new Stats()
-stats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
-document.body.appendChild( stats.dom )
-
+// Main
 let frame = () => {
-  //let startTime = performance.now()
-  stats.begin()
+  UI.stats.begin()
 
   // Compute bubble data
   if (Bub.step % 1 == 0) {
@@ -1103,16 +1120,12 @@ let frame = () => {
     
   }
 
-  //let endTime = performance.now()
-  stats.end()
+  UI.stats.end()
 
-  //Bub.updateFPS(endTime - startTime)
-
-  if (Bub.step % 5 == 0) UI.updateFPS()
+  //if (Bub.step % 5 == 0) UI.updateFPS()
 
   window.requestAnimationFrame(frame)
 }
-
 Bub.setup()
 Dust.setup()
 UI.setup()

@@ -95,6 +95,10 @@ section#front-layer {
         z-index: 2;
         z-index: 2;
         font-size: 50px;
+
+        &.hidden {
+            display: none;
+        }
     }
 }
 html.fullscreen {
@@ -182,7 +186,7 @@ header {
 }
 #fps-container {
     display: none;
-    
+
     @media (max-width: 400px) {
         display: none;
     }
@@ -192,5 +196,12 @@ header {
     top: 15px;
     p {
         font-family: Rationale, Raleway, sans-serif;
+    }
+}
+#stats {
+    display: none;
+
+    &.visible {
+        display: inherit;
     }
 }

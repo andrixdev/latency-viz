@@ -9,6 +9,8 @@ let Init = {}
 Init.room = urlParams.get("room")
 Init.viz = urlParams.get("viz")
 Init.fullscreen = urlParams.get("fullscreen")
+Init.stats = urlParams.get("stats")
+Init.captions = urlParams.get("captions")
 
 Init.vizMapping = {
 	"2d": 0,
