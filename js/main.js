@@ -24,6 +24,13 @@ Bub.setup = function () {
   this.w = this.mosaicWidth
   this.h = this.mosaicHeight
 
+  // Livermaker control parameters: zoom, position offsets (xyz), zRescale
+  this.zoom = 8000
+  this.xOffset = 0
+  this.yOffset = 0
+  this.zOffset = 0
+  this.zRescale = 4000
+
   // Create all mosaic canvases
   let createCanvas = (id, type) => {
     
@@ -72,7 +79,7 @@ Bub.setup = function () {
   }
   this.cans = []
   this.ctxs = []
-  this.canPop = 18
+  this.canPop = 19
   this.frontCtx = undefined
   for (let c = 0; c < this.canPop; c++) {
     createCanvas(c, "mosaic")
@@ -89,10 +96,6 @@ Bub.setup = function () {
 	this.cameraZ = 3000
 	this.zNearPlan = 1500
 	this.zFarPlan = -10000
-
-  this.zoom = 8000
-  this.xOffset = 0
-  this.yOffset = 0
 
   this.step = 0
 
@@ -148,6 +151,14 @@ Bub.updateFullscreen = function () {
     this.h = this.mosaicHeight
     this.dataToImageRatio3D = this.dataToImageRatio3Dm
   }
+}
+Bub.updateLivermakerControls = function (liveMakerState) {
+  console.log("Bub log of liveMakerState", liveMakerState)
+  Bub.zoom = 8000
+  Bub.xOffset = 0
+  Bub.yOffset = 0
+  Bub.zOffset = 0
+  Bub.zRescale = 4000
 }
 Bub.updateFPS = function (deltaTime) {
   this.fps = Math.round(1000 / deltaTime)
@@ -288,6 +299,7 @@ Bub.draw = function (id, ctx) {
   else if (id == 15) Bub.draw15(ctx)
   else if (id == 16) Bub.draw16(ctx)
   else if (id == 17) Bub.draw17(ctx)
+  else if (id == 18) Bub.draw18(ctx)
   else console.warn("id of Bub.draw() method not recognized: " + id)
 }
 Bub.draw0 = function (ctx) {
@@ -323,8 +335,6 @@ Bub.draw1 = function (ctx) {
     let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z)
     ctx.moveTo(xyrStart.x, xyrStart.y)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
-    //ctx.arc(pt.x, pt.y, 3 * xyr.r, 0, 2 * Math.PI, false)
-    //ctx.fill()
     ctx.stroke()
   }
   
@@ -334,7 +344,7 @@ Bub.draw2 = function (ctx) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   ctx.strokeStyle = "#FFFD"
 
-  let zRescale = 5000
+  let zRescale = this.zRescale
 
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
@@ -360,12 +370,12 @@ Bub.draw3 = function (ctx) {
 Bub.draw4 = function (ctx) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
 
-  let zRescale = 2000
+  let zRescale = this.zRescale
+
   ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
 
   ctx.beginPath()
   
-  ctx.fillStyle = "hsl(" + this.step/5 + ", 60%, 40%)"
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
     let bubStart = this.bubble[startIndex]
@@ -379,12 +389,12 @@ Bub.draw4 = function (ctx) {
   ctx.closePath()
 }
 Bub.draw5 = function (ctx) {
-  let zRescale = 3000
+  let zRescale = this.zRescale
+
   ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
 
   ctx.beginPath()
   
-  ctx.fillStyle = "hsl(" + this.step/5 + ", 60%, 40%)"
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
     let bubEnd = this.bubble[b]
@@ -486,27 +496,31 @@ Bub.draw11 = function (ctx) {
 }
 Bub.draw12 = function (ctx) {
   Dust.evolve("rain")
-  Dust.draw(ctx)
+  Dust.draw(ctx, "rain")
 }
 Bub.draw13 = function (ctx) {
-  Dust.evolve("attract")
-  Dust.draw(ctx)
+  Dust.evolve("attraction")
+  Dust.draw(ctx, "attraction")
 }
 Bub.draw14 = function (ctx) {
   Dust.evolve("vortex")
-  Dust.draw(ctx)
+  Dust.draw(ctx, "vortex")
 }
 Bub.draw15 = function (ctx) {
-  Dust.evolve("vortex")// tempest
-  Dust.draw(ctx)
+  Dust.evolve("tempest")
+  Dust.draw(ctx, "tempest")
 }
 Bub.draw16 = function (ctx) {
-  Dust.evolve("vortex")// trails
-  Dust.draw(ctx)
+  Dust.evolve("trails")
+  Dust.draw(ctx, "tempest")
 }
 Bub.draw17 = function (ctx) {
-  Dust.evolve("vortex")// trails gravity
-  Dust.draw(ctx)
+  Dust.evolve("trails-gravity")
+  Dust.draw(ctx, "trails-gravity")
+}
+Bub.draw18 = function (ctx) {
+  Dust.evolve("magnetic")
+  Dust.draw(ctx, "magnetic")
 }
 Bub.drawAura = function (ctx, mode) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
@@ -602,16 +616,20 @@ Bub.dataXYZtoCanvasXYR = function (x, y, z) {
 	// inputted xyz is in particles motion space
 	// Outputted XYR is the XY position on the 2D canvas
 	// Plus the size at which the dot/line should be drawn
-	
-  let depthEffect = 16
+  let depthEffect = 12
 
 	const zCbaseRad = 1.0// A particle positioned at (0, 0, 0) will have radius zCbaseRad
 	// Size difference law between frontmost and backmost particles
 	let dE = 2 * Math.floor(depthEffect / 2)
+
+  // Apply current offsets
+  x += this.xOffset
+  y += this.yOffset
+  z += this.zOffset
 	
 	// From base [-500, 500] to [min(w,h), min(w,h)], here min = w for portrait
-	let xx = this.xC + this.xOffset + this.zoom * this.dataToImageRatio3D * (x) / (this.cameraZ - z)
-	let yy = this.yC + this.yOffset + this.zoom * this.dataToImageRatio3D * (y) / (this.cameraZ - z)
+	let xx = this.xC + this.zoom * this.dataToImageRatio3D * (x) / (this.cameraZ - z)
+	let yy = this.yC + this.zoom * this.dataToImageRatio3D * (y) / (this.cameraZ - z)
 	let rr = zCbaseRad * Math.pow((0 - this.cameraZ) / (this.cameraZ - z), dE) * this.dataToImageRatio3D
 
 	rr = Math.min(rr, 100 * this.dataToImageRatio3D)
@@ -621,9 +639,35 @@ Bub.dataXYZtoCanvasXYR = function (x, y, z) {
 
 // Particle system
 Dust.setup = function () {
-  this.dustPop = 1200
+  this.dustPop = 2000
   this.particles = []
-  this.spawnRate = 3
+  this.spawnRate = 5
+  let v = 15
+  this.eddies = [{ // First eddy is for barycenter
+    x: Bub.xC,
+    y: Bub.yC,
+    vx: 0,
+    vy: 0,
+    r0: 0.05 * Bub.w
+  }, {
+    x: Bub.w * Math.random(),
+    y: Bub.h * Math.random(),
+    vx: v * Math.random() * 2,
+    vy: v * Math.random() * 2,
+    r0: 0.7 * Bub.w * Math.random()
+  }, {
+    x: Bub.w * Math.random(),
+    y: Bub.h * Math.random(),
+    vx: v * Math.random(),
+    vy: v * Math.random(),
+    r0: 0.1 * Bub.w * Math.random()
+  }, {
+    x: Bub.w * Math.random(),
+    y: Bub.h * Math.random(),
+    vx: v * Math.random(),
+    vy: v * Math.random(),
+    r0: 0.1 * Bub.w * Math.random()
+  }]
 }
 Dust.evolve = function (style) {
   for (let i = 0; i < this.spawnRate; i++) {
@@ -634,11 +678,11 @@ Dust.evolve = function (style) {
 Dust.spawn = function (style) {
   let id = Math.floor(1000000 * Math.random())
   this.particles.push({
-    x: Bub.w * Math.random(),
-    y: Bub.h * Math.random(),
+    x: -Bub.w / 2 + 2 * Bub.w * Math.random(),
+    y: -Bub.h / 2 + 2 * Bub.h * Math.random(),
     vx: 0,
     vy: 0,
-    lum: 30 + 60 * Math.random(),
+    lum: 20 + 60 * Math.pow(Math.random(), 3),
     size: Math.random() < 0.9 ? 1 : 3,
     lifetime: 400 + 400 * Math.random(),
     name: 'seed-' + Bub.step + '-' + id,
@@ -653,23 +697,30 @@ Dust.killAll = function () {
 }
 Dust.move = function (style) {
   let dt = 0.1
-  let g = 1
-  let mu = style == "attract" ? 3 : 0
-  let rainRepulse = style == "rain" ? 3 : 0
-  let r0 = 0.01 * Bub.w
-  let baryXY = {
-    x: Bub.xC + Bub.bary.x * Bub.w,
-    y: Bub.yC + Bub.bary.y * Bub.h
-  }
-  this.eddies = [{
-    x: baryXY.x,
-    y: baryXY.y,
-    r0: 0.1 * Bub.w
-  }]
-  let vorticity = style == "vortex" ? 10 : 0
-  let visc = style == "vortex" ? .1 : 0
   let w = Bub.w
   let h = Bub.h
+
+  let g = (style == "rain" || style == "trails-gravity") ? 1 : 0
+  let mu = style == "attraction" ? 3 : 0
+  let rainRepulse = (style == "rain" || style == "trails-gravity") ? 3 : 0
+  let r0 = 0.01 * w
+
+  let baryXY = {
+    x: Bub.xC + Bub.bary.x * w,
+    y: Bub.yC + Bub.bary.y * h
+  }
+
+  // Update first eddy (barycenter)
+  this.eddies[0].x = baryXY.x
+  this.eddies[0].y = baryXY.y
+
+  if (style == "tempest") this.moveEddies()
+  
+  // Force parameters
+  let vorticity = (style == "vortex" || style == "tempest") ? 8 : 0
+  let visc = (style == "vortex" || style == "tempest" || style == "magnetic") ? .1 : 0
+  let mag = style == "magnetic" ? 20 : 0
+
   this.particles.forEach(p => {
     let dist = Math.sqrt(Math.pow(baryXY.x - p.x, 2) + Math.pow(baryXY.y - p.y, 2))
     let dx = baryXY.x - p.x
@@ -678,8 +729,16 @@ Dust.move = function (style) {
     let yAcc = g
 
     // Attraction
-    xAcc += mu * dx / Math.pow(dist / r0, 3)
-    yAcc += mu * dy / Math.pow(dist / r0, 3)
+    xAcc += mu * dx / Math.pow(dist / r0, 2.2)
+    yAcc += mu * dy / Math.pow(dist / r0, 2.2)
+
+    // Magnetic dipole
+    let multi = Math.pow(dist, -5);
+    let xAccMag = 3 * dx * dy * multi
+    let yAccMag = (3 * dy * dy - dist * dist) * multi
+    var accNorm = Math.sqrt(xAccMag * xAccMag + yAccMag * yAccMag)
+    xAcc += mag * xAccMag / accNorm
+    yAcc += mag * yAccMag / accNorm
 
     // Update velocities
     p.vx += xAcc * dt
@@ -689,7 +748,8 @@ Dust.move = function (style) {
     p.vx += -rainRepulse * Math.sign(dx) * Math.exp(-Math.pow(dist/r0, 2))
 
     // Vortices
-		for (let e = 0; e < this.eddies.length; e++) {
+    let nbOfEddies = style == "tempest" ? this.eddies.length : 1
+		for (let e = 0; e < nbOfEddies; e++) {
 			let eddy = this.eddies[e]
 			let dx = p.x - eddy.x,
 			dy = p.y - eddy.y,
@@ -726,21 +786,50 @@ Dust.move = function (style) {
     if (p.x < -1*w || p.x > 2*w || p.y < -1*h || p.y > 2*h) {
       this.kill(p.name)
     }
+    // Kill if too close to barycenter on attraction style
+    if (style == "attraction" && dist < w * 0.03) {
+      this.kill(p.name)
+    }
 
   })
 }
-Dust.draw = function (ctx) {
+Dust.moveEddies = function () {
+  let dt = 0.1
+  this.eddies.forEach(eddy => {
+    eddy.x = (eddy.x + eddy.vx * dt) % Bub.w
+    eddy.y = (eddy.y + eddy.vy * dt) % Bub.h
+  })
+}
+Dust.draw = function (ctx, style) {
   ctx.fillStyle = "rgba(0, 0, 0, 0.05)"
   ctx.fillRect(0, 0, Bub.fullWidth, Bub.fullHeight)
 
   ctx.strokeStyle = "#FFFA"
+  let hue = 0
+  let sat = 100
+  if (style == "magnetic") {
+    hue = 20
+  } else if (style == "attraction") {
+    hue = 0
+  } else if (style == "vortex") {
+    hue = 240
+  } else if (style == "tempest") {
+    hue = 195
+  } else if (style == "trails") {
+    hue = 160
+  } else if (style == "rain") {
+    sat = 0
+  } else if (style == "trails-gravity") {
+    hue = 180
+    sat = 50
+  }
 
   this.particles.forEach(p => {
     ctx.beginPath()
     let x = p.x
     let y = p.y
     ctx.arc(x, y, p.size / 1.5, 0, 2 * Math.PI, false)
-    ctx.fillStyle = "hsl(205, 85%, " + p.lum + "%)"
+    ctx.fillStyle = "hsl(" + hue + ", " + sat + "%, " + p.lum + "%)"
     ctx.fill()
     ctx.closePath()
   })
@@ -881,7 +970,8 @@ UI.initCaptions = function () {
     "Vortex",
     "Tempest",
     "Trail",
-    "Trail Gravity"
+    "Trail Gravity",
+    "Magnetic"
   ]
   for (let id = 0; id < Bub.canPop; id++) {
     let caption = ""
