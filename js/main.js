@@ -157,14 +157,16 @@ Bub.updateFullscreen = function () {
 }
 Bub.updateLivermakerControls = function (lmState) {
   console.log("Bub log of liveMakerState", lmState)
-  Bub.zoom = lmState["uiPage.latency.alex.zoom"]
-  Bub.xOffset = lmState["uiPage.latency.alex.xOffset"]
-  Bub.yOffset = lmState["uiPage.latency.alex.yOffset"]
-  Bub.zOffset = lmState["uiPage.latency.alex.zOffset"]
-  Bub.zScale = lmState["uiPage.latency.alex.zScale"]
-  Bub.a = lmState["uiPage.latency.alex.a"]
-  Bub.b = lmState["uiPage.latency.alex.b"]
-  Bub.c = lmState["uiPage.latency.alex.c"]
+  if (lmState["uiPage.latency.alex.zoom"]) {
+    Bub.zoom = lmState["uiPage.latency.alex.zoom"]
+    Bub.xOffset = lmState["uiPage.latency.alex.xOffset"]
+    Bub.yOffset = lmState["uiPage.latency.alex.yOffset"]
+    Bub.zOffset = lmState["uiPage.latency.alex.zOffset"]
+    Bub.zScale = lmState["uiPage.latency.alex.zScale"]
+    Bub.a = lmState["uiPage.latency.alex.a"]
+    Bub.b = lmState["uiPage.latency.alex.b"]
+    Bub.c = lmState["uiPage.latency.alex.c"]
+  }
 }
 Bub.updateFPS = function (deltaTime) {
   this.fps = Math.round(1000 / deltaTime)
@@ -287,6 +289,9 @@ Bub.updateBubbleEnergy = function () {
   
 }
 Bub.draw = function (id, ctx) {
+  // Some costly viz are only rendered 1 in 10 frames in mosaic view
+  if (!Bub.isFullscreen && Bub.step % 100 != 0 && id >= 11) return false
+
   if (id == 0) Bub.draw0(ctx)
   else if (id == 1) Bub.draw1(ctx)
   else if (id == 2) Bub.draw2(ctx)
@@ -323,6 +328,7 @@ Bub.draw0 = function (ctx) {
     let yEnd = this.yC + bubEnd.y * this.h
     ctx.moveTo(xStart, yStart)
     ctx.lineTo(xEnd, yEnd)
+    ctx.lineWidth = 2.5
     ctx.stroke()
   }
   
@@ -341,6 +347,7 @@ Bub.draw1 = function (ctx) {
     let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z)
     ctx.moveTo(xyrStart.x, xyrStart.y)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
+    ctx.lineWidth = 2
     ctx.stroke()
   }
   
@@ -362,7 +369,7 @@ Bub.draw2 = function (ctx) {
     ctx.beginPath()
     ctx.moveTo(xyrStart.x, xyrStart.y)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
-    ctx.lineWidth = 0.15 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
+    ctx.lineWidth = 1.5 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
     ctx.stroke()
   }
   
@@ -505,8 +512,8 @@ Bub.draw12 = function (ctx) {
   Dust.draw(ctx, "rain")
 }
 Bub.draw13 = function (ctx) {
-  Dust.evolve("attraction")
-  Dust.draw(ctx, "attraction")
+    Dust.evolve("attraction")
+    Dust.draw(ctx, "attraction")
 }
 Bub.draw14 = function (ctx) {
   Dust.evolve("vortex")
@@ -1071,7 +1078,6 @@ Utils.segmentAngleRad = (Xstart, Ystart, Xtarget, Ytarget, realOrWeb) => {
 let stats = new Stats()
 stats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
 document.body.appendChild( stats.dom )
-
 
 let frame = () => {
   //let startTime = performance.now()
