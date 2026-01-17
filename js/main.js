@@ -115,6 +115,7 @@ Bub.setup = function () {
 
   // Barycenter
   this.bary = { x: 0, y: 0, z: 0 }
+  this.averageBary = { x: 0, y: 0, z: 0 }
 
   // Bubble energy
   this.radii = 0
@@ -123,7 +124,7 @@ Bub.setup = function () {
   this.energyHistoryIndex = 0
   this.energyHistory = []
   this.energy = 0 // Average of energyHistory
-  this.energyScale = 5000
+  this.energyScale = 6000
 
   // Fullscreen mode
   this.isFullscreen = false
@@ -221,12 +222,16 @@ Bub.updateFrame = function (bubbleFrame) {
   // Compute and save average bubble
   this.averageBubble = this.getAverageBubble()
 
-  // Compute energy and barycenter
-  this.updateBarycenter(this.bubble)
+  // Compute barycenters
+  this.bary = this.getBarycenter(this.bubble)
+  this.averageBary = this.getBarycenter(this.averageBubble)
+
+  // Compute energy
   this.updateBubbleEnergy(this.averageBubble)
 }
-Bub.updateBarycenter = function (bubble) {
-  // Compute barycenter
+Bub.updateBarycenter = function () {
+}
+Bub.getBarycenter = function (bubble) {
   let bary = {x: 0, y: 0, z: 0}
 
   bubble.forEach(pt => {
@@ -239,7 +244,7 @@ Bub.updateBarycenter = function (bubble) {
   bary.y /= bubble.length
   bary.z /= bubble.length
 
-  this.bary = bary
+  return bary
 }
 Bub.getBubbleRadii = function (bubble) {
   let rMin = 999999
@@ -622,7 +627,7 @@ Bub.drawDotField = function (ctx, mode) {
   let sensitivity = 1.5
   let amplitude = 0.4
 
-  let bary = Bub.bary
+  let bary = Bub.averageBary
   let baryXY = {
     x: this.xC + this.w * bary.x * sensitivity,
     y: this.yC + this.h * bary.y * sensitivity
