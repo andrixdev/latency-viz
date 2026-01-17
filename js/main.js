@@ -82,7 +82,7 @@ Bub.setup = function () {
   }
   this.cans = []
   this.ctxs = []
-  this.canPop = 19
+  this.canPop = 24
   this.frontCtx = undefined
   for (let c = 0; c < this.canPop; c++) {
     createCanvas(c, "mosaic")
@@ -116,6 +116,9 @@ Bub.setup = function () {
   // Barycenter
   this.bary = { x: 0, y: 0, z: 0 }
   this.averageBary = { x: 0, y: 0, z: 0 }
+
+  // Main direction
+  this.direction = { x: 0, y: 0, z: 0}
 
   // Bubble energy
   this.radii = 0
@@ -226,6 +229,9 @@ Bub.updateFrame = function (bubbleFrame) {
   this.bary = this.getBarycenter(this.bubble)
   this.averageBary = this.getBarycenter(this.averageBubble)
 
+  // Compute main direction (from bubble history)
+  this.updateDirection()
+  
   // Compute energy
   this.updateBubbleEnergy(this.averageBubble)
 }
@@ -337,6 +343,30 @@ Bub.updateBubbleEnergy = function (bubble) {
   }
   
 }
+Bub.updateDirection = function () {
+  if (this.bubbleHistory.length == this.bubbleHistoryLength && this.bubbleHistoryLength >= 2) {
+    let newDirection = { x: 0, y: 0, z: 0 }
+
+    // Get last and before last bubble
+    let lastIndex = this.bubbleHistoryIndex
+    let beforeLastIndex = (lastIndex + 2 * this.bubbleHistoryLength - 1) % this.bubbleHistoryLength 
+
+    let lastBub = this.bubbleHistory[lastIndex]
+    let beforeLastBub = this.bubbleHistory[beforeLastIndex]
+
+    let lastBary = this.getBarycenter(lastBub)
+    let beforeLastBary = this.getBarycenter(beforeLastBub)
+
+    if (!beforeLastBary) console.log("step", Bub.step)
+
+    newDirection.x = lastBary.x - beforeLastBary.x
+    newDirection.y = lastBary.y - beforeLastBary.y
+    newDirection.z = lastBary.z - beforeLastBary.z
+
+    this.direction = newDirection
+  }
+}
+
 Bub.draw = function (id, ctx) {
   // Some costly viz are only rendered 1 in 10 frames in mosaic view
   if (!Bub.isFullscreen && Bub.step % 100 != 0 && id >= 11) return false
@@ -360,6 +390,12 @@ Bub.draw = function (id, ctx) {
   else if (id == 16) Bub.draw16(ctx)
   else if (id == 17) Bub.draw17(ctx)
   else if (id == 18) Bub.draw18(ctx)
+  else if (id == 19) Bub.draw19(ctx)
+  else if (id == 20) Bub.draw20(ctx)
+  else if (id == 21) Bub.draw21(ctx)
+  else if (id == 22) Bub.draw22(ctx)
+  else if (id == 23) Bub.draw23(ctx)
+  else if (id == 24) Bub.draw24(ctx)
   else console.warn("id of Bub.draw() method not recognized: " + id)
 }
 Bub.draw0 = function (ctx, bubble) {
@@ -579,6 +615,24 @@ Bub.draw18 = function (ctx) {
   Dust.evolve("magnetic")
   Dust.draw(ctx, "magnetic")
 }
+Bub.draw19 = function (ctx) {
+  this.drawDotField(ctx, "direction")
+}
+Bub.draw20 = function (ctx) {
+  
+}
+Bub.draw21 = function (ctx) {
+  
+}
+Bub.draw22 = function (ctx) {
+  
+}
+Bub.draw23 = function (ctx) {
+  
+}
+Bub.draw24 = function (ctx) {
+  
+}
 Bub.drawAura = function (ctx, mode, bubble) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   
@@ -622,7 +676,7 @@ Bub.drawDotField = function (ctx, mode) {
   let xPop = 64//16
   let yPop = ctx.canvas.height / ctx.canvas.width * xPop//18//9
 
-  ctx.lineWidth = this.w / 300
+  ctx.lineWidth = mode != "direction" ? this.w / 300 : this.x / 600
 
   let sensitivity = 1.5
   let amplitude = 0.4
@@ -643,11 +697,24 @@ Bub.drawDotField = function (ctx, mode) {
       // Translated dot
       ctx.beginPath()
       let distToBary = Math.sqrt(Math.pow(x - baryXY.x, 2) + Math.pow(y - baryXY.y, 2))
-      let deformationRadius = amplitude * this.w * radii.rAvg * (mode == "iso" ? 1 : this.energy / 10)
+      let deformationRadius = amplitude * this.w * radii.rAvg * (mode != "energy" ? 1 : this.energy / 10)
       let scale = Math.exp(-Math.pow(distToBary / deformationRadius, 2))
       let xx = x + (x - baryXY.x) * scale
       let yy = y + (y - baryXY.y) * scale
-      ctx.arc(xx, yy, 1, 0, 2 * Math.PI, false)
+      if (mode != "direction") {
+        // Draw dot
+        ctx.arc(xx, yy, 1, 0, 2 * Math.PI, false)
+      } else {
+        let stickScale = 1000
+        let maxLength = .02
+        let smoothDirection = { // Prevents glitches to freeze UI due to too long strokes
+          x: Math.max(-maxLength, Math.min(maxLength, this.direction.x)),
+          y: Math.max(-maxLength, Math.min(maxLength, this.direction.y))
+        }
+        ctx.moveTo(xx, yy)
+        ctx.lineTo(xx + stickScale * smoothDirection.x, yy + stickScale * smoothDirection.y)
+      }
+    
       let a = Math.min(1, 0.6 + 1.5 * scale / 2) 
       ctx.strokeStyle = "rgba(255, 255, 255, " + a + ")"
       ctx.stroke()
@@ -931,7 +998,7 @@ Dust.draw = function (ctx, style) {
     }
     else if (style == "trails-gravity") {
       hue = 160 + p.hue
-      lum += 10
+      lum += 10 
     }
     ctx.fillStyle = "hsl(" + hue + ", " + sat + "%, " + lum + "%)"
     ctx.fill()
@@ -1085,7 +1152,8 @@ UI.initCaptions = function () {
     "Tempest",
     "Trails",
     "Trails Gravity",
-    "Magnetic"
+    "Magnetic",
+    "Direction"
   ]
   for (let id = 0; id < Bub.canPop; id++) {
     let caption = ""
