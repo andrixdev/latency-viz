@@ -82,7 +82,7 @@ Bub.setup = function () {
   }
   this.cans = []
   this.ctxs = []
-  this.canPop = 24
+  this.canPop = 27
   this.frontCtx = undefined
   for (let c = 0; c < this.canPop; c++) {
     createCanvas(c, "mosaic")
@@ -367,20 +367,21 @@ Bub.updateDirection = function () {
   }
 }
 
+// Draw router
 Bub.draw = function (id, ctx) {
   // Some costly viz are only rendered 1 in 10 frames in mosaic view
-  if (!Bub.isFullscreen && Bub.step % 100 != 0 && id >= 11) return false
+  if (!Bub.isFullscreen && Bub.step % 100 != 0 && id >= 9) return false
 
-  if (id == 0) Bub.draw0(ctx, this.bubble)
-  else if (id == 1) Bub.draw1(ctx, this.bubble)
-  else if (id == 2) Bub.draw2(ctx, this.bubble)
-  else if (id == 3) Bub.draw3(ctx, this.bubble)
-  else if (id == 4) Bub.draw4(ctx, this.bubble)
-  else if (id == 5) Bub.draw5(ctx, this.bubble)
-  else if (id == 6) Bub.draw6(ctx, this.bubble)
-  else if (id == 7) Bub.draw7(ctx, this.bubble)
+  if (id == 0) Bub.draw0(ctx)
+  else if (id == 1) Bub.draw1(ctx)
+  else if (id == 2) Bub.draw2(ctx)
+  else if (id == 3) Bub.draw3(ctx)
+  else if (id == 4) Bub.draw4(ctx)
+  else if (id == 5) Bub.draw5(ctx)
+  else if (id == 6) Bub.draw6(ctx)
+  else if (id == 7) Bub.draw7(ctx)
   else if (id == 8) Bub.draw8(ctx)
-  else if (id == 9) Bub.draw9(ctx, this.bubble)
+  else if (id == 9) Bub.draw9(ctx)
   else if (id == 10) Bub.draw10(ctx)
   else if (id == 11) Bub.draw11(ctx)
   else if (id == 12) Bub.draw12(ctx)
@@ -396,49 +397,30 @@ Bub.draw = function (id, ctx) {
   else if (id == 22) Bub.draw22(ctx)
   else if (id == 23) Bub.draw23(ctx)
   else if (id == 24) Bub.draw24(ctx)
+  else if (id == 25) Bub.draw25(ctx)
+  else if (id == 26) Bub.draw26(ctx)
+  else if (id == 27) Bub.draw27(ctx)
   else console.warn("id of Bub.draw() method not recognized: " + id)
 }
-Bub.draw0 = function (ctx, bubble) {
-  ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
-  ctx.strokeStyle = "#FFFD"
-  
-  for (let b = 0; b < bubble.length; b++) {
-    let startIndex = b == 0 ? bubble.length - 1 : (b - 1)
-    ctx.beginPath()
-    let bubStart = bubble[startIndex]
-    let bubEnd = bubble[b]
-    let xStart = this.xC + bubStart.x * this.w
-    let yStart = this.yC + bubStart.y * this.h
-    let xEnd = this.xC + bubEnd.x * this.w
-    let yEnd = this.yC + bubEnd.y * this.h
-    ctx.moveTo(xStart, yStart)
-    ctx.lineTo(xEnd, yEnd)
-    ctx.lineWidth = 2.5
-    ctx.stroke()
-  }
-  
-  ctx.closePath()
+// 2D
+Bub.draw0 = function (ctx) {
+  this.draw2Dbubble(ctx, this.bubble)
 }
-Bub.draw1 = function (ctx, bubble) {
-  ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
-  ctx.strokeStyle = "#FFFD"
-  
-  for (let b = 0; b < bubble.length; b++) {
-    let startIndex = b == 0 ? bubble.length - 1 : (b - 1)
-    ctx.beginPath()
-    let bubStart = bubble[startIndex]
-    let bubEnd = bubble[b]
-    let xyrStart = Bub.dataXYZtoCanvasXYR(bubStart.x, bubStart.y, bubStart.z)
-    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z)
-    ctx.moveTo(xyrStart.x, xyrStart.y)
-    ctx.lineTo(xyrEnd.x, xyrEnd.y)
-    ctx.lineWidth = 2
-    ctx.stroke()
-  }
-  
-  ctx.closePath()
+// 2D average
+Bub.draw1 = function (ctx) {
+  this.draw2Dbubble(ctx, this.averageBubble)
 }
-Bub.draw2 = function (ctx, bubble) {
+// 3D
+Bub.draw2 = function (ctx) {
+  this.draw3Dbubble(ctx, this.bubble)
+}
+// 3D average
+Bub.draw3 = function (ctx) {
+  this.draw3Dbubble(ctx, this.averageBubble)
+}
+// 3D depth
+Bub.draw4 = function (ctx) {
+  let bubble = this.bubble
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   ctx.strokeStyle = "#FFFD"
 
@@ -461,10 +443,9 @@ Bub.draw2 = function (ctx, bubble) {
   this.drawBarycenter(ctx)
   
 }
-Bub.draw3 = function (ctx, bubble) {
-  this.drawAura(ctx, "iso", bubble)
-}
-Bub.draw4 = function (ctx, bubble) {
+// Silhouette
+Bub.draw5 = function (ctx) {
+  let bubble = this.bubble
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
 
   ctx.moveTo(bubble[0].x, bubble[0].y)
@@ -481,7 +462,9 @@ Bub.draw4 = function (ctx, bubble) {
   
   ctx.closePath()
 }
-Bub.draw5 = function (ctx, bubble) {
+// Painting
+Bub.draw6 = function (ctx) {
+  let bubble = this.bubble
   ctx.moveTo(bubble[0].x, bubble[0].y)
 
   ctx.beginPath()
@@ -499,7 +482,35 @@ Bub.draw5 = function (ctx, bubble) {
   
   ctx.closePath()
 }
-Bub.draw6 = function (ctx, bubble) {
+// 3D aura
+Bub.draw7 = function (ctx) {
+  let bubble = this.bubble
+  this.drawAura(ctx, "iso", bubble)
+}
+// 3D aura energy
+Bub.draw8 = function (ctx) {
+  let bubble = this.bubble
+  this.drawAura(ctx, "energy", bubble)
+}
+// Energy
+Bub.draw9 = function (ctx) {
+  ctx.fillStyle = "#FFFD"
+  if (this.energy > 0) {
+    ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
+    ctx.beginPath()
+    let rad = this.energy * this.w / 150
+    ctx.arc(this.xC, this.yC, rad, 0, 2 * Math.PI, false)
+    ctx.fill()
+    ctx.closePath()
+  }
+}
+// Direction
+Bub.draw10 = function (ctx) {
+  this.drawDotField(ctx, "direction")
+}
+// Circles
+Bub.draw11 = function (ctx) {
+  let bubble = this.bubble
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
 
   this.drawBarycenter(ctx)
@@ -532,7 +543,9 @@ Bub.draw6 = function (ctx, bubble) {
   ctx.closePath()
   
 }
-Bub.draw7 = function (ctx, bubble) {
+// Vitruvian
+Bub.draw12 = function (ctx) {
+  let bubble = this.bubble
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
 
   this.drawBarycenter(ctx)
@@ -567,74 +580,113 @@ Bub.draw7 = function (ctx, bubble) {
   drawPentagon(ctx, rScale * rii.rAvg)
   drawPentagon(ctx, rScale * rii.rMax)
 }
-Bub.draw8 = function (ctx) {
-  ctx.fillStyle = "#FFFD"
-  if (this.energy > 0) {
-    ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
-    ctx.beginPath()
-    let rad = this.energy * this.w / 150
-    ctx.arc(this.xC, this.yC, rad, 0, 2 * Math.PI, false)
-    ctx.fill()
-    ctx.closePath()
-  }
-}
-Bub.draw9 = function (ctx, bubble) {
-  this.drawAura(ctx, "energy", bubble)
-}
-Bub.draw10 = function (ctx) {
+// Grid
+Bub.draw13 = function (ctx) {
   this.drawDotField(ctx, "iso")
 }
-Bub.draw11 = function (ctx) {
+// Grid energy
+Bub.draw14 = function (ctx) {
   this.drawDotField(ctx, "energy")
 }
-Bub.draw12 = function (ctx) {
+// Sphere
+Bub.draw15 = function (ctx) {
+  // Sphere
+  Bub.drawSphere(ctx, "iso")
+}
+// Sphere energy
+Bub.draw16 = function (ctx) {
+  // Sphere Energy
+  Bub.drawSphere(ctx, "energy")
+}
+// Rain
+Bub.draw17 = function (ctx) {
   Dust.evolve("rain")
   Dust.draw(ctx, "rain")
 }
-Bub.draw13 = function (ctx) {
+// Attraction
+Bub.draw18 = function (ctx) {
     Dust.evolve("attraction")
     Dust.draw(ctx, "attraction")
 }
-Bub.draw14 = function (ctx) {
+// Vortex
+Bub.draw19 = function (ctx) {
   Dust.evolve("vortex")
   Dust.draw(ctx, "vortex")
 }
-Bub.draw15 = function (ctx) {
-  Dust.evolve("tempest")
-  Dust.draw(ctx, "tempest")
-}
-Bub.draw16 = function (ctx) {
-  Dust.evolve("trails")
-  Dust.draw(ctx, "trails")
-}
-Bub.draw17 = function (ctx) {
-  Dust.evolve("trails-gravity")
-  Dust.draw(ctx, "trails-gravity")
-}
-Bub.draw18 = function (ctx) {
-  Dust.evolve("magnetic")
-  Dust.draw(ctx, "magnetic")
-}
-Bub.draw19 = function (ctx) {
-  this.drawDotField(ctx, "direction")
-}
+// Vortex energy
 Bub.draw20 = function (ctx) {
   Dust.evolve("vortex-energy")
   Dust.draw(ctx, "vortex-energy")
 }
+// Tempest
 Bub.draw21 = function (ctx) {
-  // Sphere
-  Bub.drawSphere(ctx, "iso")
+  Dust.evolve("tempest")
+  Dust.draw(ctx, "tempest")
 }
+// Hybrid
 Bub.draw22 = function (ctx) {
-  // Sphere Energy
-  Bub.drawSphere(ctx, "energy")
+  Dust.evolve("hybrid")
+  Dust.draw(ctx, "hybrid")
 }
+// Trails
 Bub.draw23 = function (ctx) {
-  
+  Dust.evolve("trails")
+  Dust.draw(ctx, "trails")
 }
+// Trails gravity
 Bub.draw24 = function (ctx) {
+  Dust.evolve("trails-gravity")
+  Dust.draw(ctx, "trails-gravity")
+}
+// Magnetic
+Bub.draw25 = function (ctx) {
+  Dust.evolve("magnetic")
+  Dust.draw(ctx, "magnetic")
+}
+// Multipole
+Bub.draw26 = function (ctx) {
+  Dust.evolve("multipole")
+  Dust.draw(ctx, "multipole")
+}
+Bub.draw2Dbubble = function (ctx, bubble) {
+  ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
+  ctx.strokeStyle = "#FFFD"
   
+  for (let b = 0; b < bubble.length; b++) {
+    let startIndex = b == 0 ? bubble.length - 1 : (b - 1)
+    ctx.beginPath()
+    let bubStart = bubble[startIndex]
+    let bubEnd = bubble[b]
+    let xStart = this.xC + bubStart.x * this.w
+    let yStart = this.yC + bubStart.y * this.h
+    let xEnd = this.xC + bubEnd.x * this.w
+    let yEnd = this.yC + bubEnd.y * this.h
+    ctx.moveTo(xStart, yStart)
+    ctx.lineTo(xEnd, yEnd)
+    ctx.lineWidth = 2.5
+    ctx.stroke()
+  }
+  
+  ctx.closePath()
+}
+Bub.draw3Dbubble = function (ctx, bubble) {
+  ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
+  ctx.strokeStyle = "#FFFD"
+  
+  for (let b = 0; b < bubble.length; b++) {
+    let startIndex = b == 0 ? bubble.length - 1 : (b - 1)
+    ctx.beginPath()
+    let bubStart = bubble[startIndex]
+    let bubEnd = bubble[b]
+    let xyrStart = Bub.dataXYZtoCanvasXYR(bubStart.x, bubStart.y, bubStart.z)
+    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z)
+    ctx.moveTo(xyrStart.x, xyrStart.y)
+    ctx.lineTo(xyrEnd.x, xyrEnd.y)
+    ctx.lineWidth = 2
+    ctx.stroke()
+  }
+  
+  ctx.closePath()
 }
 Bub.drawAura = function (ctx, mode, bubble) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
@@ -731,6 +783,8 @@ Bub.drawSphere = function (ctx, mode) {
 
   let bary = this.averageBary
 
+  // /!\ SPECIAL Z RESCALE
+  let zRescale = 1/2
   let r = .35
   let thetaStep = Math.PI / 9
   let phiStep = Math.PI / 8
@@ -746,7 +800,7 @@ Bub.drawSphere = function (ctx, mode) {
       
       let x = bary.x + r * Math.cos(theta + thetaOffset) * Math.sin(phi + phiOffset)
       let y = bary.y + r * Math.cos(phi + phiOffset)
-      let z = bary.z + r * Math.sin(theta + thetaOffset) * Math.sin(phi + phiOffset) / 100
+      let z = bary.z + r * Math.sin(theta + thetaOffset) * Math.sin(phi + phiOffset) * zRescale
 
       let xyr = Bub.dataXYZtoCanvasXYR(x, y, z)
       let rr = xyr.r * 10
@@ -887,15 +941,25 @@ Dust.move = function (style) {
   let h = Bub.h
 
   // Force parameters
-  let isVortexStyle = (style == "vortex" || style == "vortex-energy" || style == "tempest")
+  let isVortexStyle = (style == "vortex" || style == "vortex-energy" || style == "tempest" || style == "hybrid")
+  let isMagneticStyle = style == "magnetic" || style == "multipole"
+  
   let vorticity = isVortexStyle ? 10 : (style == "attraction" ? 0.5 : 0)
-  let mag = style == "magnetic" ? 20 : 0
+  let mag = style == "magnetic" ? 20 : (style == "multipole" ? 40 : 0)
   let g = (style == "rain") ? 1 : (style == "trails-gravity" ? 2.5 : 0)
   let mu = style == "attraction" ? 30 : 0
   let rainRepulse = style == "rain" ? 2 : 0
   let attractionR0 = 0.01 * w
   let rainR0 = 0.015 * w
   let visc = isVortexStyle ? .1 : ((style == "magnetic" || style =="attraction") ? .05 : 0)
+
+  if (style == "hybrid") {
+    vorticity = .5
+    mag = 4
+    g = -.7
+    mu = -1.5
+    visc = 0.015
+  }
 
   let baryXY = {
     x: Bub.xC + Bub.bary.x * w,
@@ -909,23 +973,48 @@ Dust.move = function (style) {
   if (style == "tempest") this.moveEddies()
 
   this.particles.forEach(p => {
-    let dist = Math.sqrt(Math.pow(baryXY.x - p.x, 2) + Math.pow(baryXY.y - p.y, 2))
+    // Dist to bary
     let dx = baryXY.x - p.x
     let dy = baryXY.y - p.y
+    let dist = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2))
     let xAcc = 0
-    let yAcc = g
+    let yAcc = 0
+
+    // Dist to center with offset (for multipole)
+    let dxc = Bub.xC - p.x
+    let dyc = (0.6 * Bub.h) - p.y
+    let distc = Math.sqrt(Math.pow(dxc, 2) + Math.pow(dyc, 2))
+
+    // Gravity
+    yAcc += g
 
     // Attraction
     xAcc += mu * dx / Math.pow(dist / attractionR0, 2.0)
     yAcc += mu * dy / Math.pow(dist / attractionR0, 2.0)
 
     // Magnetic dipole
-    let multi = Math.pow(dist, -5);
-    let xAccMag = 3 * dx * dy * multi
-    let yAccMag = (3 * dy * dy - dist * dist) * multi
-    var accNorm = Math.sqrt(xAccMag * xAccMag + yAccMag * yAccMag)
-    xAcc += mag * xAccMag / accNorm
-    yAcc += mag * yAccMag / accNorm
+    let getMagneticAcceleration = (chosenDist, chosenDX, chosenDY) => {
+      let multi = Math.pow(chosenDist, -5)
+      let xAccMag = 3 * chosenDX * chosenDY * multi
+      let yAccMag = (3 * chosenDY * chosenDY - chosenDist * chosenDist) * multi
+      let accNorm = Math.sqrt(xAccMag * xAccMag + yAccMag * yAccMag)
+
+      return {
+        x: mag * xAccMag / accNorm,
+        y: mag * yAccMag / accNorm
+      }
+    }
+    let magAcc = getMagneticAcceleration(dist, dx, dy)
+    xAcc += magAcc.x
+    yAcc += magAcc.y
+
+    // Multipole (extra magnetic dipole at center)
+    if (style == "multipole") {
+      let centralMagAcc = getMagneticAcceleration(distc, dxc, dyc)
+      xAcc -= 1.4 * centralMagAcc.x
+      yAcc -= 1.4 * centralMagAcc.y
+      visc = .08
+    }
 
     // Update velocities
     p.vx += xAcc * dt
@@ -952,7 +1041,7 @@ Dust.move = function (style) {
           
         let K = style == "tempest" ? (e == 0 ? 2 : 0.5) : 5
         if (style == "vortex-energy") {
-          K *= (0.15 + Bub.energy / 3)
+          K *= (0.15 + Bub.energy / 2)
           r0 *= 0.1 * (0.1 + 1/200 * Bub.energy)
         }
 
@@ -1035,6 +1124,7 @@ Dust.draw = function (ctx, style) {
     hue = 180
     sat = 50
   }
+  
 
   this.particles.forEach(p => {
     ctx.beginPath()
@@ -1049,6 +1139,10 @@ Dust.draw = function (ctx, style) {
     else if (style == "trails-gravity") {
       hue = 160 + p.hue
       lum += 10 
+    }
+    else if (style == "hybrid") {
+      hue = 150 + p.hue * 3
+      sat = 50
     }
     ctx.fillStyle = "hsl(" + hue + ", " + sat + "%, " + lum + "%)"
     ctx.fill()
@@ -1185,28 +1279,32 @@ UI.initControlsListeners = function () {
 UI.initCaptions = function () {
   this.captions = [
     "2D",
+    "2D Average",
     "3D",
-    "3D depth",
-    "3D aura",
+    "3D Average",
+    "3D Depth",
     "Silhouette",
     "Painting",
+    "3D Aura",
+    "3D Aura Energy",
+    "Energy",
+    "Direction",
     "Circles",
     "Vitruvian",
-    "Energy",
-    "Aura Energy",
     "Grid",
     "Grid Energy",
+    "Sphere",
+    "Sphere Energy",
     "Rain",
     "Attraction",
     "Vortex",
+    "Vortex Energy",
     "Tempest",
+    "Hybrid",
     "Trails",
     "Trails Gravity",
     "Magnetic",
-    "Direction",
-    "Vortex Energy",
-    "Sphere",
-    "Sphere Energy"
+    "Multipole"
   ]
   for (let id = 0; id < Bub.canPop; id++) {
     let caption = ""
