@@ -569,7 +569,7 @@ Bub.draw15 = function (ctx) {
 }
 Bub.draw16 = function (ctx) {
   Dust.evolve("trails")
-  Dust.draw(ctx, "tempest")
+  Dust.draw(ctx, "trails")
 }
 Bub.draw17 = function (ctx) {
   Dust.evolve("trails-gravity")
@@ -765,6 +765,7 @@ Dust.spawn = function (style) {
     y: y,
     vx: 0,
     vy: 0,
+    hue: 15 + 50 * Math.random(),
     lum: 20 + 60 * Math.pow(Math.random(), 3),
     size: Math.random() < 0.925 ? 1 : 3.5,
     lifetime: lifetime,
@@ -910,7 +911,7 @@ Dust.draw = function (ctx, style) {
   } else if (style == "tempest") {
     hue = 195
   } else if (style == "trails") {
-    hue = 160
+    hue = 0
   } else if (style == "rain") {
     sat = 0
   } else if (style == "trails-gravity") {
@@ -923,7 +924,12 @@ Dust.draw = function (ctx, style) {
     let x = p.x
     let y = p.y
     ctx.arc(x, y, p.size / 1.5 * Bub.w / 1000, 0, 2 * Math.PI, false)
-    ctx.fillStyle = "hsl(" + hue + ", " + sat + "%, " + p.lum + "%)"
+    lum = p.lum
+    if (style == "trails") { 
+      hue = p.hue
+      lum = 20 + 0.75 * p.hue
+    }
+    ctx.fillStyle = "hsl(" + hue + ", " + sat + "%, " + lum + "%)"
     ctx.fill()
     ctx.closePath()
   })
