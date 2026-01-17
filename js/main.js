@@ -104,9 +104,14 @@ Bub.setup = function () {
 
   // Bubble init
   this.bubble = []
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 25; i++) {
     this.bubble.push({ x: 0, y: 0, z: 0 })
   }
+  this.bubbleHistoryLength = 10
+  this.bubbleHistoryIndex = 0
+  this.bubbleHistory = []
+  this.bubbleHistory.push(this.bubble)
+  this.averageBubble = []
 
   // Barycenter
   this.bary = { x: 0, y: 0, z: 0 }
@@ -114,10 +119,11 @@ Bub.setup = function () {
   // Bubble energy
   this.radii = 0
   this.lastRadii = 0
-  this.historyLength = 6
-  this.historyIndex = 0
-  this.history = []
-  this.energy = 0 // Average of history
+  this.energyHistoryLength = 20
+  this.energyHistoryIndex = 0
+  this.energyHistory = []
+  this.energy = 0 // Average of energyHistory
+  this.energyScale = 5000
 
   // Fullscreen mode
   this.isFullscreen = false
@@ -134,8 +140,6 @@ Bub.setup = function () {
 }
 Bub.update = function () {
   this.step++
-  this.updateBubbleEnergy()
-  this.updateBarycenter()
 }
 Bub.toggleFullscreen = function () {
   this.isFullscreen = !this.isFullscreen
@@ -196,40 +200,55 @@ Bub.updatePoint = function (url, param) {
     }
 }
 Bub.updateFrame = function (bubbleFrame) {
-  Bub.bubble = []
+  // Build new bubble with data offset (centering on 0 from [0, 1])
+  let newBubble = []
   for (let i = 1; i <= 25; i++) {
     let pt = bubbleFrame["point" + i]
-    Bub.bubble.push({
+    newBubble.push({
       x: pt.x - 0.5,
       y: pt.y - 0.5,
       z: pt.z - 0.5
     })
   }
+
+  // Overwrite bubble
+  this.bubble = newBubble
+
+  // Add to history
+  this.bubbleHistoryIndex = (this.bubbleHistoryIndex + 1) % this.bubbleHistoryLength
+  this.bubbleHistory[this.bubbleHistoryIndex] = newBubble
+
+  // Compute and save average bubble
+  this.averageBubble = this.getAverageBubble()
+
+  // Compute energy and barycenter
+  this.updateBarycenter(this.bubble)
+  this.updateBubbleEnergy(this.averageBubble)
 }
-Bub.updateBarycenter = function () {
+Bub.updateBarycenter = function (bubble) {
   // Compute barycenter
   let bary = {x: 0, y: 0, z: 0}
 
-  this.bubble.forEach(pt => {
+  bubble.forEach(pt => {
     bary.x += pt.x
     bary.y += pt.y
     bary.z += pt.z
   })
 
-  bary.x /= this.bubble.length
-  bary.y /= this.bubble.length
-  bary.z /= this.bubble.length
+  bary.x /= bubble.length
+  bary.y /= bubble.length
+  bary.z /= bubble.length
 
   this.bary = bary
 }
-Bub.getBubbleRadii = function () {
+Bub.getBubbleRadii = function (bubble) {
   let rMin = 999999
   let rMax = 0
   let rAverage
   let rSum = 0
 
   let bary = this.bary
-  this.bubble.forEach(pt => {
+  bubble.forEach(pt => {
     let dx = bary.x - pt.x
     let dy = bary.y - pt.y
     let dz = bary.z - pt.z
@@ -240,31 +259,55 @@ Bub.getBubbleRadii = function () {
     if (dist < rMin) rMin = dist
   })
 
-  rAverage = rSum / this.bubble.length
+  rAverage = rSum / bubble.length
 
   return { rAvg: rAverage, rMin: rMin, rMax: rMax }
 }
-Bub.getHistoryAverage = function () {
-  if (!this.history.length) {
-    console.log("Empty energy history, filling with zeros...")
-    for (let i = 0; i < this.historyLength; i++) {
-      this.history.push(0)
+Bub.getAverageBubble = function () {
+  // Compute average bubble out of bubble history
+  let avBubble = []
+
+  for (let i = 0; i < 25; i++) {
+    let x = 0
+    let y = 0
+    let z = 0
+
+    this.bubbleHistory.forEach(bub => {
+      x += bub[i].x
+      y += bub[i].y
+      z += bub[i].z
+    })
+
+    x /= Math.max(1, this.bubbleHistory.length)
+    y /= Math.max(1, this.bubbleHistory.length)
+    z /= Math.max(1, this.bubbleHistory.length)
+
+    avBubble.push({ x: x, y: y, z: z })
+  }
+  
+  return avBubble
+}
+Bub.getEnergyHistoryAverage = function () {
+  if (!this.energyHistory.length) {
+    console.log("Empty energyHistory, filling with zeros...")
+    for (let i = 0; i < this.energyHistoryLength; i++) {
+      this.energyHistory.push(0)
     }
   }
 
   let nrj = 0
-  this.history.forEach(h => { nrj += h })
-  nrj /= this.historyLength
+  this.energyHistory.forEach(h => { nrj += h })
+  nrj /= this.energyHistoryLength
 
   return nrj
 }
-Bub.updateBubbleEnergy = function () {
+Bub.updateBubbleEnergy = function (bubble) {
   let alpha = 25
   let beta = 1
   let gamma = 0
 
   this.lastRadii = this.radii
-  this.radii = this.getBubbleRadii()
+  this.radii = this.getBubbleRadii(bubble)
 
   // E = variation of weighted average of squares
 
@@ -275,16 +318,17 @@ Bub.updateBubbleEnergy = function () {
   let newSquareSum = getSquareSum(this.radii)
   let lastSquareSum = getSquareSum(this.lastRadii)
   let E = Math.abs(newSquareSum - lastSquareSum)
-  let sigma = 0.6
-  let visualE = 3 * Math.pow(10000 * E, sigma)
+  //let sigma = 1
+  //let visualE = .5 * Math.pow(10000 * E, sigma)
+  let visualE = E * this.energyScale
 
-  // If something changed (non-zero energy), push to one of the history values
+  // If something changed (non-zero energy), push to one of the energyHistory values
   if (E > 0) {
-    this.historyIndex = (this.historyIndex + 1) % this.historyLength
-    this.history[this.historyIndex] = visualE
+    this.energyHistoryIndex = (this.energyHistoryIndex + 1) % this.energyHistoryLength
+    this.energyHistory[this.energyHistoryIndex] = visualE
 
-    // Assign average of history to energy value
-    this.energy = this.getHistoryAverage()
+    // Assign average of energyHistory to energy value
+    this.energy = this.getEnergyHistoryAverage()
   }
   
 }
@@ -292,16 +336,16 @@ Bub.draw = function (id, ctx) {
   // Some costly viz are only rendered 1 in 10 frames in mosaic view
   if (!Bub.isFullscreen && Bub.step % 100 != 0 && id >= 11) return false
 
-  if (id == 0) Bub.draw0(ctx)
-  else if (id == 1) Bub.draw1(ctx)
-  else if (id == 2) Bub.draw2(ctx)
-  else if (id == 3) Bub.draw3(ctx)
-  else if (id == 4) Bub.draw4(ctx)
-  else if (id == 5) Bub.draw5(ctx)
-  else if (id == 6) Bub.draw6(ctx)
-  else if (id == 7) Bub.draw7(ctx)
+  if (id == 0) Bub.draw0(ctx, this.bubble)
+  else if (id == 1) Bub.draw1(ctx, this.bubble)
+  else if (id == 2) Bub.draw2(ctx, this.bubble)
+  else if (id == 3) Bub.draw3(ctx, this.bubble)
+  else if (id == 4) Bub.draw4(ctx, this.bubble)
+  else if (id == 5) Bub.draw5(ctx, this.bubble)
+  else if (id == 6) Bub.draw6(ctx, this.bubble)
+  else if (id == 7) Bub.draw7(ctx, this.bubble)
   else if (id == 8) Bub.draw8(ctx)
-  else if (id == 9) Bub.draw9(ctx)
+  else if (id == 9) Bub.draw9(ctx, this.bubble)
   else if (id == 10) Bub.draw10(ctx)
   else if (id == 11) Bub.draw11(ctx)
   else if (id == 12) Bub.draw12(ctx)
@@ -313,15 +357,15 @@ Bub.draw = function (id, ctx) {
   else if (id == 18) Bub.draw18(ctx)
   else console.warn("id of Bub.draw() method not recognized: " + id)
 }
-Bub.draw0 = function (ctx) {
+Bub.draw0 = function (ctx, bubble) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   ctx.strokeStyle = "#FFFD"
   
-  for (let b = 0; b < this.bubble.length; b++) {
-    let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
+  for (let b = 0; b < bubble.length; b++) {
+    let startIndex = b == 0 ? bubble.length - 1 : (b - 1)
     ctx.beginPath()
-    let bubStart = this.bubble[startIndex]
-    let bubEnd = this.bubble[b]
+    let bubStart = bubble[startIndex]
+    let bubEnd = bubble[b]
     let xStart = this.xC + bubStart.x * this.w
     let yStart = this.yC + bubStart.y * this.h
     let xEnd = this.xC + bubEnd.x * this.w
@@ -334,15 +378,15 @@ Bub.draw0 = function (ctx) {
   
   ctx.closePath()
 }
-Bub.draw1 = function (ctx) {
+Bub.draw1 = function (ctx, bubble) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   ctx.strokeStyle = "#FFFD"
   
-  for (let b = 0; b < this.bubble.length; b++) {
-    let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
+  for (let b = 0; b < bubble.length; b++) {
+    let startIndex = b == 0 ? bubble.length - 1 : (b - 1)
     ctx.beginPath()
-    let bubStart = this.bubble[startIndex]
-    let bubEnd = this.bubble[b]
+    let bubStart = bubble[startIndex]
+    let bubEnd = bubble[b]
     let xyrStart = Bub.dataXYZtoCanvasXYR(bubStart.x, bubStart.y, bubStart.z)
     let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z)
     ctx.moveTo(xyrStart.x, xyrStart.y)
@@ -353,14 +397,14 @@ Bub.draw1 = function (ctx) {
   
   ctx.closePath()
 }
-Bub.draw2 = function (ctx) {
+Bub.draw2 = function (ctx, bubble) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   ctx.strokeStyle = "#FFFD"
 
-  for (let b = 0; b < this.bubble.length; b++) {
-    let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
-    let bubStart = this.bubble[startIndex]
-    let bubEnd = this.bubble[b]
+  for (let b = 0; b < bubble.length; b++) {
+    let startIndex = b == 0 ? bubble.length - 1 : (b - 1)
+    let bubStart = bubble[startIndex]
+    let bubEnd = bubble[b]
     let xyrStart = Bub.dataXYZtoCanvasXYR(bubStart.x, bubStart.y, bubStart.z)
     let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z)
 
@@ -376,18 +420,18 @@ Bub.draw2 = function (ctx) {
   this.drawBarycenter(ctx)
   
 }
-Bub.draw3 = function (ctx) {
-  this.drawAura(ctx, "iso")
+Bub.draw3 = function (ctx, bubble) {
+  this.drawAura(ctx, "iso", bubble)
 }
-Bub.draw4 = function (ctx) {
+Bub.draw4 = function (ctx, bubble) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
 
-  ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
+  ctx.moveTo(bubble[0].x, bubble[0].y)
 
   ctx.beginPath()
   
-  for (let b = 0; b < this.bubble.length; b++) {
-    let bubEnd = this.bubble[b]
+  for (let b = 0; b < bubble.length; b++) {
+    let bubEnd = bubble[b]
     let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
     ctx.fillStyle = "white"
@@ -396,13 +440,13 @@ Bub.draw4 = function (ctx) {
   
   ctx.closePath()
 }
-Bub.draw5 = function (ctx) {
-  ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
+Bub.draw5 = function (ctx, bubble) {
+  ctx.moveTo(bubble[0].x, bubble[0].y)
 
   ctx.beginPath()
   
-  for (let b = 0; b < this.bubble.length; b++) {
-    let bubEnd = this.bubble[b]
+  for (let b = 0; b < bubble.length; b++) {
+    let bubEnd = bubble[b]
     let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
     let t = Bub.step / 200
@@ -414,12 +458,12 @@ Bub.draw5 = function (ctx) {
   
   ctx.closePath()
 }
-Bub.draw6 = function (ctx) {
+Bub.draw6 = function (ctx, bubble) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
 
   this.drawBarycenter(ctx)
 
-  let rii = this.getBubbleRadii()
+  let rii = this.getBubbleRadii(bubble)
   let bary = this.bary
   let baryXyr = this.dataXYZtoCanvasXYR(bary.x, bary.y, bary.z)
 
@@ -447,12 +491,12 @@ Bub.draw6 = function (ctx) {
   ctx.closePath()
   
 }
-Bub.draw7 = function (ctx) {
+Bub.draw7 = function (ctx, bubble) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
 
   this.drawBarycenter(ctx)
 
-  let rii = this.getBubbleRadii()
+  let rii = this.getBubbleRadii(bubble)
   let bary = this.bary
   let baryXyr = this.dataXYZtoCanvasXYR(bary.x, bary.y, bary.z)
 
@@ -493,8 +537,8 @@ Bub.draw8 = function (ctx) {
     ctx.closePath()
   }
 }
-Bub.draw9 = function (ctx) {
-  this.drawAura(ctx, "energy")
+Bub.draw9 = function (ctx, bubble) {
+  this.drawAura(ctx, "energy", bubble)
 }
 Bub.draw10 = function (ctx) {
   this.drawDotField(ctx, "iso")
@@ -530,7 +574,7 @@ Bub.draw18 = function (ctx) {
   Dust.evolve("magnetic")
   Dust.draw(ctx, "magnetic")
 }
-Bub.drawAura = function (ctx, mode) {
+Bub.drawAura = function (ctx, mode, bubble) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   
   let bary = this.bary
@@ -540,10 +584,10 @@ Bub.drawAura = function (ctx, mode) {
 
   for (let aura = 2; aura <= 12; aura++) {
     let auraStep = aura / 12 * auraScale
-    for (let b = 0; b < this.bubble.length; b++) {
-      let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
-      let bubStart = this.bubble[startIndex]
-      let bubEnd = this.bubble[b]
+    for (let b = 0; b < bubble.length; b++) {
+      let startIndex = b == 0 ? bubble.length - 1 : (b - 1)
+      let bubStart = bubble[startIndex]
+      let bubEnd = bubble[b]
       
       let x1 = bary.x + (bubStart.x - bary.x) * auraStep
       let y1 = bary.y + (bubStart.y - bary.y) * auraStep
@@ -1056,7 +1100,6 @@ UI.updateFPS = function () {
 }
 UI.updateStats = function () {
   if (Init.stats) {
-    console.log(this.frontCaptionNode)
     this.statsNode.classList.toggle("visible", Init.stats == 1)
   }
 }
