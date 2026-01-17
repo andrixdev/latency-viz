@@ -623,10 +623,12 @@ Bub.draw20 = function (ctx) {
   Dust.draw(ctx, "vortex-energy")
 }
 Bub.draw21 = function (ctx) {
-  
+  // Sphere
+  Bub.drawSphere(ctx, "iso")
 }
 Bub.draw22 = function (ctx) {
-  
+  // Sphere Energy
+  Bub.drawSphere(ctx, "energy")
 }
 Bub.draw23 = function (ctx) {
   
@@ -719,6 +721,38 @@ Bub.drawDotField = function (ctx, mode) {
       let a = Math.min(1, 0.6 + 1.5 * scale / 2) 
       ctx.strokeStyle = "rgba(255, 255, 255, " + a + ")"
       ctx.stroke()
+      ctx.closePath()
+    }
+  }
+}
+Bub.drawSphere = function (ctx, mode) {
+  ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
+  ctx.fillStyle = "#FFFA"
+
+  let bary = this.averageBary
+
+  let r = .35
+  let thetaStep = Math.PI / 9
+  let phiStep = Math.PI / 8
+  let thetaOffset = Bub.step / 500
+  let phiOffset = 0// + Bub.step / 200
+
+  if (mode == "energy") {
+    thetaOffset = 2 * this.energy
+    r = .05 + this.energy / 60
+  }
+  for (let theta = 0; theta < 2 * Math.PI; theta += thetaStep) {
+    for (let phi = -Math.PI; phi < Math.PI; phi += phiStep) {
+      
+      let x = bary.x + r * Math.cos(theta + thetaOffset) * Math.sin(phi + phiOffset)
+      let y = bary.y + r * Math.cos(phi + phiOffset)
+      let z = bary.z + r * Math.sin(theta + thetaOffset) * Math.sin(phi + phiOffset) / 100
+
+      let xyr = Bub.dataXYZtoCanvasXYR(x, y, z)
+      let rr = xyr.r * 10
+      ctx.beginPath()
+      ctx.arc(xyr.x, xyr.y, rr, 0, 2 * Math.PI, false)
+      ctx.fill()
       ctx.closePath()
     }
   }
@@ -833,7 +867,7 @@ Dust.spawn = function (style) {
     y: y,
     vx: 0,
     vy: 0,
-    hue: 15 + 50 * Math.random(),
+    hue: 15 + 35 * Math.random(),
     lum: 20 + 60 * Math.pow(Math.random(), 3),
     size: Math.random() < 0.925 ? 1 : 3.5,
     lifetime: lifetime,
@@ -1170,7 +1204,9 @@ UI.initCaptions = function () {
     "Trails Gravity",
     "Magnetic",
     "Direction",
-    "Vortex Energy"
+    "Vortex Energy",
+    "Sphere",
+    "Sphere Energy"
   ]
   for (let id = 0; id < Bub.canPop; id++) {
     let caption = ""
