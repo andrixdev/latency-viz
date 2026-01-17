@@ -929,6 +929,10 @@ Dust.draw = function (ctx, style) {
       hue = p.hue
       lum = 20 + 0.75 * p.hue
     }
+    else if (style == "trails-gravity") {
+      hue = 160 + p.hue
+      lum += 10
+    }
     ctx.fillStyle = "hsl(" + hue + ", " + sat + "%, " + lum + "%)"
     ctx.fill()
     ctx.closePath()
