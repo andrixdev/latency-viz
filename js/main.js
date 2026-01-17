@@ -731,7 +731,7 @@ Bub.drawDotField = function (ctx, mode) {
   let xPop = 64//16
   let yPop = ctx.canvas.height / ctx.canvas.width * xPop//18//9
 
-  ctx.lineWidth = mode != "direction" ? this.w / 300 : this.x / 600
+  ctx.lineWidth = mode != "direction" ? this.w / 300 : this.w / 600
 
   let sensitivity = 1.5
   let amplitude = 0.4
@@ -792,7 +792,6 @@ Bub.drawSphere = function (ctx, mode) {
   let phiOffset = 0// + Bub.step / 200
 
   if (mode == "energy") {
-    thetaOffset = 2 * this.energy
     r = .05 + this.energy / 60
   }
   for (let theta = 0; theta < 2 * Math.PI; theta += thetaStep) {
