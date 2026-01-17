@@ -357,25 +357,24 @@ Bub.draw2 = function (ctx) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   ctx.strokeStyle = "#FFFD"
 
-  let zScale = this.zScale
-
   for (let b = 0; b < this.bubble.length; b++) {
     let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
     let bubStart = this.bubble[startIndex]
     let bubEnd = this.bubble[b]
-    let xyrStart = Bub.dataXYZtoCanvasXYR(bubStart.x, bubStart.y, bubStart.z * zScale)
-    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zScale)
+    let xyrStart = Bub.dataXYZtoCanvasXYR(bubStart.x, bubStart.y, bubStart.z)
+    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z)
 
     ctx.beginPath()
     ctx.moveTo(xyrStart.x, xyrStart.y)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
-    ctx.lineWidth = 1.5 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
+    ctx.lineWidth = 10 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
     ctx.stroke()
   }
   
   ctx.closePath()
 
   this.drawBarycenter(ctx)
+  
 }
 Bub.draw3 = function (ctx) {
   this.drawAura(ctx, "iso")
@@ -383,17 +382,13 @@ Bub.draw3 = function (ctx) {
 Bub.draw4 = function (ctx) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
 
-  let zScale = this.zScale
-
   ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
 
   ctx.beginPath()
   
   for (let b = 0; b < this.bubble.length; b++) {
-    let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
-    let bubStart = this.bubble[startIndex]
     let bubEnd = this.bubble[b]
-    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zScale)
+    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
     ctx.fillStyle = "white"
     ctx.fill()
@@ -402,18 +397,18 @@ Bub.draw4 = function (ctx) {
   ctx.closePath()
 }
 Bub.draw5 = function (ctx) {
-  let zScale = this.zScale
-
   ctx.moveTo(this.bubble[0].x, this.bubble[0].y)
 
   ctx.beginPath()
   
   for (let b = 0; b < this.bubble.length; b++) {
-    let startIndex = b == 0 ? this.bubble.length - 1 : (b - 1)
     let bubEnd = this.bubble[b]
-    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z * zScale)
+    let xyrEnd = Bub.dataXYZtoCanvasXYR(bubEnd.x, bubEnd.y, bubEnd.z)
     ctx.lineTo(xyrEnd.x, xyrEnd.y)
-    ctx.fillStyle = "white"
+    let t = Bub.step / 200
+    let sin = Math.sin(t)
+    let h = 230 + 50 * Math.sign(sin) * Math.pow(Math.abs(sin), 2)
+    ctx.fillStyle = "hsl(" + h + ", 85%, 50%)"
     ctx.fill()
   }
   
@@ -540,7 +535,6 @@ Bub.drawAura = function (ctx, mode) {
   
   let bary = this.bary
 
-  let zScale = 3000
   ctx.strokeStyle = mode == "iso" ? "#FFFA" : "hsl(210, 80%, 50%)"
   let auraScale = mode == "iso" ? 1 : (0.08 + this.energy * 0.08)
 
@@ -553,11 +547,11 @@ Bub.drawAura = function (ctx, mode) {
       
       let x1 = bary.x + (bubStart.x - bary.x) * auraStep
       let y1 = bary.y + (bubStart.y - bary.y) * auraStep
-      let z1 = bary.z + ((bubStart.z - bary.z) * auraStep) * zScale
+      let z1 = bary.z + (bubStart.z - bary.z) * auraStep
       
       let x2 = bary.x + (bubEnd.x - bary.x) * auraStep
       let y2 = bary.y + (bubEnd.y - bary.y) * auraStep
-      let z2 = bary.z + ((bubEnd.z - bary.z) * auraStep) * zScale
+      let z2 = bary.z + (bubEnd.z - bary.z) * auraStep
 
       let xyrStart = Bub.dataXYZtoCanvasXYR(x1, y1, z1)
       let xyrEnd = Bub.dataXYZtoCanvasXYR(x2, y2, z2)
@@ -565,7 +559,7 @@ Bub.drawAura = function (ctx, mode) {
       ctx.beginPath()
       ctx.moveTo(xyrStart.x, xyrStart.y)
       ctx.lineTo(xyrEnd.x, xyrEnd.y)
-      ctx.lineWidth = .15 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
+      ctx.lineWidth = 5 * Math.sqrt((xyrStart.r + xyrEnd.r) / 2)
       ctx.stroke()
     }
   
@@ -620,7 +614,8 @@ Bub.drawBarycenter = function (ctx) {
 
   let xyr = this.dataXYZtoCanvasXYR(bary.x, bary.y, bary.z)
   ctx.beginPath()
-  ctx.arc(xyr.x, xyr.y, .05 * xyr.r, 0, 2 * Math.PI, false)
+  let rad = Bub.w * 0.01
+  ctx.arc(xyr.x, xyr.y, rad, 0, 2 * Math.PI, false)
   ctx.fillStyle = "red"
   ctx.fill()
   ctx.closePath()
@@ -629,11 +624,14 @@ Bub.dataXYZtoCanvasXYR = function (x, y, z) {
 	// inputted xyz is in particles motion space
 	// Outputted XYR is the XY position on the 2D canvas
 	// Plus the size at which the dot/line should be drawn
-  let depthEffect = 12
+  let depthEffect = 14
 
 	const zCbaseRad = 1.0// A particle positioned at (0, 0, 0) will have radius zCbaseRad
 	// Size difference law between frontmost and backmost particles
 	let dE = 2 * Math.floor(depthEffect / 2)
+
+  // Rescale z
+  z *= this.zScale
 
   // Apply current offsets
   x += this.xOffset
