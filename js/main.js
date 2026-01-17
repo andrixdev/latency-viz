@@ -619,7 +619,8 @@ Bub.draw19 = function (ctx) {
   this.drawDotField(ctx, "direction")
 }
 Bub.draw20 = function (ctx) {
-  
+  Dust.evolve("vortex-energy")
+  Dust.draw(ctx, "vortex-energy")
 }
 Bub.draw21 = function (ctx) {
   
@@ -852,14 +853,15 @@ Dust.move = function (style) {
   let h = Bub.h
 
   // Force parameters
-  let vorticity = (style == "vortex" || style == "tempest") ? 10 : (style == "attraction" ? 0.5 : 0)
+  let isVortexStyle = (style == "vortex" || style == "vortex-energy" || style == "tempest")
+  let vorticity = isVortexStyle ? 10 : (style == "attraction" ? 0.5 : 0)
   let mag = style == "magnetic" ? 20 : 0
   let g = (style == "rain") ? 1 : (style == "trails-gravity" ? 2.5 : 0)
   let mu = style == "attraction" ? 30 : 0
   let rainRepulse = style == "rain" ? 2 : 0
   let attractionR0 = 0.01 * w
   let rainR0 = 0.015 * w
-  let visc = (style == "vortex" || style == "tempest") ? .1 : ((style == "magnetic" || style =="attraction") ? .05 : 0)
+  let visc = isVortexStyle ? .1 : ((style == "magnetic" || style =="attraction") ? .05 : 0)
 
   let baryXY = {
     x: Bub.xC + Bub.bary.x * w,
@@ -900,26 +902,38 @@ Dust.move = function (style) {
 
     // Vortices
     let nbOfEddies = style == "tempest" ? this.eddies.length : 1
-		for (let e = 0; e < nbOfEddies; e++) {
-			let eddy = this.eddies[e]
-			let dx = p.x - eddy.x,
-			dy = p.y - eddy.y,
-			r = Math.sqrt(dx*dx + dy*dy),
-			theta = Utils.segmentAngleRad(0, 0, dx, dy, true),
-			cos = Math.cos(theta), sin = Math.sin(theta),
-			r0 = eddy.r0
-			
-			let er = { x: cos, y: sin },
-				eO = { x: -sin, y: cos }
-				
-			let radialVelocity = -0.003 * Math.abs(dx*dy)/3000,
-				sigma = 100,
-				azimutalVelocity = Math.exp(-Math.pow((r - r0) / sigma, 2))
-			
-      let K = style == "tempest" ? (e == 0 ? 2 : 0.5) : 5
-			p.vx += vorticity * K * (radialVelocity * er.x + azimutalVelocity * eO.x)
-			p.vy += vorticity * K * (radialVelocity * er.y + azimutalVelocity * eO.y)
-		}
+    if (isVortexStyle) {
+      for (let e = 0; e < nbOfEddies; e++) {
+        let eddy = this.eddies[e]
+        let dx = p.x - eddy.x,
+        dy = p.y - eddy.y,
+        r = Math.sqrt(dx*dx + dy*dy),
+        theta = Utils.segmentAngleRad(0, 0, dx, dy, true),
+        cos = Math.cos(theta), sin = Math.sin(theta),
+        r0 = eddy.r0
+        
+        let er = { x: cos, y: sin },
+          eO = { x: -sin, y: cos }
+          
+          
+        let K = style == "tempest" ? (e == 0 ? 2 : 0.5) : 5
+        if (style == "vortex-energy") {
+          K *= (0.15 + Bub.energy / 3)
+          r0 *= 0.1 * (0.1 + 1/200 * Bub.energy)
+        }
+
+        let radialVelocity = -0.003 * Math.abs(dx*dy)/3000,
+          sigma = 100,
+          azimutalVelocity = Math.exp(-Math.pow((r - r0) / sigma, 2))
+
+          if (style == "vortex-energy") {
+            sigma = 30
+          }
+        
+        p.vx += vorticity * K * (radialVelocity * er.x + azimutalVelocity * eO.x)
+        p.vy += vorticity * K * (radialVelocity * er.y + azimutalVelocity * eO.y)
+      }
+    }
 		
 		// Viscosity
 		p.vx *= (1 - visc)
@@ -975,6 +989,8 @@ Dust.draw = function (ctx, style) {
     hue = 0
   } else if (style == "vortex") {
     hue = 220
+  } else if (style == "vortex-energy") {
+    hue = 320
   } else if (style == "tempest") {
     hue = 195
   } else if (style == "trails") {
@@ -1153,7 +1169,8 @@ UI.initCaptions = function () {
     "Trails",
     "Trails Gravity",
     "Magnetic",
-    "Direction"
+    "Direction",
+    "Vortex Energy"
   ]
   for (let id = 0; id < Bub.canPop; id++) {
     let caption = ""
