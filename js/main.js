@@ -710,7 +710,7 @@ Dust.setup = function () {
     y: Bub.yC,
     vx: 0,
     vy: 0,
-    r0: 0.05 * Bub.w
+    r0: 0.025 * Bub.w
   }, {
     x: Bub.w * (-0.5 + 2 * Math.random()),
     y: Bub.h * (-0.5 + 2 * Math.random()),
