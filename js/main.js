@@ -607,7 +607,9 @@ Bub.drawDotField = function (ctx, mode) {
   }
 }
 Bub.clearCanvases = function () {
+  // Clearing for PAINTING view, on both mosaic and fullscreen views
   Bub.ctxs[5].clearRect(0, 0, Bub.fullWidth, Bub.fullHeight)
+  Bub.frontCtx.clearRect(0, 0, Bub.fullWidth, Bub.fullHeight)
 }
 Bub.drawBarycenter = function (ctx) {
   let bary = this.bary
