@@ -783,10 +783,15 @@ Dust.move = function (style) {
   let w = Bub.w
   let h = Bub.h
 
+  // Force parameters
+  let vorticity = (style == "vortex" || style == "tempest") ? 10 : (style == "attraction" ? 0.5 : 0)
+  let mag = style == "magnetic" ? 20 : 0
   let g = (style == "rain") ? 1 : (style == "trails-gravity" ? 2.5 : 0)
-  let mu = style == "attraction" ? 3 : 0
+  let mu = style == "attraction" ? 30 : 0
   let rainRepulse = style == "rain" ? 2 : 0
-  let r0 = 0.01 * w
+  let attractionR0 = 0.01 * w
+  let rainR0 = 0.015 * w
+  let visc = (style == "vortex" || style == "tempest") ? .1 : ((style == "magnetic" || style =="attraction") ? .05 : 0)
 
   let baryXY = {
     x: Bub.xC + Bub.bary.x * w,
@@ -798,11 +803,6 @@ Dust.move = function (style) {
   this.eddies[0].y = baryXY.y
 
   if (style == "tempest") this.moveEddies()
-  
-  // Force parameters
-  let vorticity = (style == "vortex" || style == "tempest") ? 10 : 0
-  let visc = (style == "vortex" || style == "tempest") ? .1 : (style == "magnetic" ? .05 : 0)
-  let mag = style == "magnetic" ? 20 : 0
 
   this.particles.forEach(p => {
     let dist = Math.sqrt(Math.pow(baryXY.x - p.x, 2) + Math.pow(baryXY.y - p.y, 2))
@@ -812,8 +812,8 @@ Dust.move = function (style) {
     let yAcc = g
 
     // Attraction
-    xAcc += mu * dx / Math.pow(dist / r0, 2.2)
-    yAcc += mu * dy / Math.pow(dist / r0, 2.2)
+    xAcc += mu * dx / Math.pow(dist / attractionR0, 2.0)
+    yAcc += mu * dy / Math.pow(dist / attractionR0, 2.0)
 
     // Magnetic dipole
     let multi = Math.pow(dist, -5);
@@ -828,7 +828,7 @@ Dust.move = function (style) {
     p.vy += yAcc * dt
 
     // Rain
-    p.vx += -rainRepulse * Math.sign(dx) * Math.exp(-Math.pow(dist/(1.5 * r0), 0.5))
+    p.vx += -rainRepulse * Math.sign(dx) * Math.exp(-Math.pow(dist/rainR0, 0.5))
 
     // Vortices
     let nbOfEddies = style == "tempest" ? this.eddies.length : 1
