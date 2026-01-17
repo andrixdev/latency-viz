@@ -770,7 +770,7 @@ Bub.drawDotField = function (ctx, mode) {
         ctx.lineTo(xx + stickScale * smoothDirection.x, yy + stickScale * smoothDirection.y)
       }
     
-      let a = Math.min(1, 0.6 + 1.5 * scale / 2) 
+      let a = Math.min(1, 0.3 + 2.5 * scale / 2) 
       ctx.strokeStyle = "rgba(255, 255, 255, " + a + ")"
       ctx.stroke()
       ctx.closePath()
