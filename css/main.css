@@ -63,6 +63,20 @@ body {
   flex-flow: row;
   flex-wrap: wrap;
 }
+section#intro {
+  padding-top: 90px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+section#intro p {
+  line-height: 0.1em;
+  text-align: center;
+  color: #FFFB;
+}
+section#intro p em {
+  color: white;
+  margin-right: 3px;
+}
 p.caption {
   text-align: left;
   font-family: "Rationale", sans-serif;
@@ -75,7 +89,8 @@ main {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  padding-top: 40px;
+  padding-top: 0;
+  margin-top: -60px;
 }
 main p.caption {
   margin: -30px 17px;
