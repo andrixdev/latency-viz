@@ -2,10 +2,11 @@
 Visualization web interface for dance bubbles
 
 # Version
-* One unique branch, main version on the **master** branch
+One unique branch, main version on the **master** branch  
+Deployed at https://alexandrix.com/latency  
 
 # User: Setup
-* No package needed, open the index.html file in your favorite browser
+No package needed, open the index.html file in your favorite browser
 
 # URL parameters
 * You can pass URL parameters to apply settings
