@@ -151,6 +151,14 @@ header h2 {
 header #controls {
   margin-bottom: 5px;
 }
+footer {
+  margin: 45px 0 0;
+  width: 100%;
+  opacity: 0.4;
+}
+footer p {
+  text-align: center;
+}
 .control {
   display: flex;
   flex-flow: row;

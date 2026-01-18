@@ -59,3 +59,6 @@ Visualization web interface for dance bubbles
 # Developer: Compiling LESS into CSS without Visual Studio Code
 * Install the LESS preprocessor (https://lesscss.org/usage/)
 * To update the stylesheet, run **lessc ./css/main.less ./css/main.css** from root directory
+
+# TODO
+* On-resize behaviour
