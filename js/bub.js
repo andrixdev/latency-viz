@@ -490,12 +490,12 @@ Bub.draw6 = function (ctx) {
 }
 // 3D aura
 Bub.draw7 = function (ctx) {
-  let bubble = this.averageBubble
+  let bubble = this.bubble
   this.drawAura(ctx, "iso", bubble)
 }
 // 3D aura energy
 Bub.draw8 = function (ctx) {
-  let bubble = this.averageBubble
+  let bubble = this.bubble
   this.drawAura(ctx, "energy", bubble)
 }
 // Energy
