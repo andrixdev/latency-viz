@@ -1,8 +1,11 @@
 /**
+ * MAIN
+ * Boot methods
+ * 
+ * Latency visualization interface
  * ANDRIX ® 2026
  */
 
-// Main
 let frame = () => {
   UI.stats.begin()
 
@@ -36,4 +39,5 @@ let frame = () => {
 Bub.setup()
 Dust.setup()
 UI.setup()
+
 frame()

@@ -1,5 +1,9 @@
-/** 
- * Socket Connect, Maxime Touroute x Alex Andrix @ 2026
+/**
+ * CONNECT
+ * Socket connection with detection software by Maxime Touroute
+ * 
+ * Latency visualization interface
+ * ANDRIX & Maxime Touroute © 2026
  */
 
 let socketURL = ""

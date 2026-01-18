@@ -1,4 +1,8 @@
 /**
+ * INIT
+ * Init methods
+ * 
+ * Latency visualization interface
  * ANDRIX ® 2026
  */
 

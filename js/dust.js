@@ -1,4 +1,8 @@
 /**
+ * DUST
+ * Particles system
+ * 
+ * Latency visualization interface
  * ANDRIX ® 2026
  */
 

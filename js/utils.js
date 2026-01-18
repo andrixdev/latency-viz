@@ -1,9 +1,14 @@
 /**
+ * UTILS
+ * Useful helpers
+ * 
+ * Latency visualization interface
  * ANDRIX ® 2026
  */
 
-// Utils
+
 let Utils = {}
+
 Utils.segmentAngleRad = (Xstart, Ystart, Xtarget, Ytarget, realOrWeb) => {
 	/**
 	 * @param {Number} Xstart X value of the segment starting point

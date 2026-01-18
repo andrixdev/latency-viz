@@ -1,4 +1,8 @@
 /**
+ * UI
+ * UI
+ * 
+ * Latency visualization interface
  * ANDRIX ® 2026
  */
 

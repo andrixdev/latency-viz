@@ -1,10 +1,14 @@
 /**
+ * BUBBLE
+ * Core
+ * 
+ * Latency visualization interface
  * ANDRIX ® 2026
  */
 
 let Bub = {}
 
-// Bub logic
+// Core init
 Bub.setup = function () {
   this.htmlNode = document.getElementsByTagName("html")[0]
   const mainNode = document.getElementsByTagName("main")[0]
@@ -140,10 +144,13 @@ Bub.setup = function () {
   // Update fullscreen
   Bub.updateFullscreen()
 }
+// Core update
 Bub.update = function () {
   this.step++
 }
+
 Bub.toggleFullscreen = function () {
+  // Fullscreen toggle is a core behaviour => it is in Bub and not in UI
   this.isFullscreen = !this.isFullscreen
 }
 Bub.updateFullscreen = function () {
@@ -365,7 +372,7 @@ Bub.updateDirection = function () {
   }
 }
 
-// Draw router
+// Router for draw methods
 Bub.draw = function (id, ctx) {
   // Some costly viz are only rendered 1 in 10 frames in mosaic view
   if (!Bub.isFullscreen && Bub.step % 100 != 0 && id >= 9) return false
@@ -647,6 +654,8 @@ Bub.draw26 = function (ctx) {
   Dust.evolve("multipole")
   Dust.draw(ctx, "multipole")
 }
+
+// Common
 Bub.draw2Dbubble = function (ctx, bubble) {
   ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
   ctx.strokeStyle = "#FFFD"
@@ -809,11 +818,15 @@ Bub.drawSphere = function (ctx, mode) {
     }
   }
 }
+
+// Clearing for views that don't repaint each frame & the fullscreen view
 Bub.clearCanvases = function () {
   // Clearing for PAINTING view, on both mosaic and fullscreen views
-  Bub.ctxs[5].clearRect(0, 0, Bub.fullWidth, Bub.fullHeight)
+  Bub.ctxs[6].clearRect(0, 0, Bub.fullWidth, Bub.fullHeight)
   Bub.frontCtx.clearRect(0, 0, Bub.fullWidth, Bub.fullHeight)
 }
+
+// Plot a red dot on the current barycenter
 Bub.drawBarycenter = function (ctx) {
   let bary = this.bary
 
@@ -825,13 +838,16 @@ Bub.drawBarycenter = function (ctx) {
   ctx.fill()
   ctx.closePath()
 }
+
+// Main space-to-canvas transformation for 3D views
 Bub.dataXYZtoCanvasXYR = function (x, y, z) {
-	// inputted xyz is in particles motion space
+	// inputted xyz is in particles/data motion space
 	// Outputted XYR is the XY position on the 2D canvas
-	// Plus the size at which the dot/line should be drawn
+	// Plus the size at which the dot/line should be drawn (R)
   let depthEffect = 14
 
-	const zCbaseRad = 1.0// A particle positioned at (0, 0, 0) will have radius zCbaseRad
+	const zCbaseRad = 1.0 // A particle positioned at (0, 0, 0) will have radius zCbaseRad
+
 	// Size difference law between frontmost and backmost particles
 	let dE = 2 * Math.floor(depthEffect / 2)
 
@@ -843,12 +859,13 @@ Bub.dataXYZtoCanvasXYR = function (x, y, z) {
   y += this.yOffset
   z += this.zOffset
 	
-	// From base [-500, 500] to [min(w,h), min(w,h)], here min = w for portrait
+  // Compute XYR
 	let xx = this.xC + this.zoom * this.dataToImageRatio3D * (x) / (this.cameraZ - z)
 	let yy = this.yC + this.zoom * this.dataToImageRatio3D * (y) / (this.cameraZ - z)
 	let rr = zCbaseRad * Math.pow((0 - this.cameraZ) / (this.cameraZ - z), dE) * this.dataToImageRatio3D
 
-	rr = Math.min(rr, 100 * this.dataToImageRatio3D)
+  // Prevent excessive radii
+	rr = Math.min(rr, 30 * this.dataToImageRatio3D)
 
 	return { x: xx, y: yy, r: rr }
 }
