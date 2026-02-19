@@ -109,7 +109,7 @@ Bub.setup = function () {
   for (let i = 0; i < 25; i++) {
     this.bubble.push({ x: 0, y: 0, z: 0 })
   }
-  this.bubbleHistoryLength = 10
+  this.bubbleHistoryLength = 15
   this.bubbleHistoryIndex = 0
   this.bubbleHistory = []
   this.bubbleHistory.push(this.bubble)
@@ -130,7 +130,9 @@ Bub.setup = function () {
   this.energyHistoryIndex = 0
   this.energyHistory = []
   this.energy = { E: 0, E1: 0, E2: 0 } // Average of energyHistory
-  this.energyScale = 12000
+  this.energyScale = 20000
+  this.energy1weight = 5
+  this.energy2weight = 1
 
   // Fullscreen mode
   this.isFullscreen = false
@@ -341,9 +343,11 @@ Bub.updateEnergies = function () {
 
   // Compute expansion energy
   // Weights of min, avg and max circles
-  let alpha = 25
+  let alpha = 3
   let beta = 1
-  let gamma = 0
+  let gamma = 3
+
+  beta *= 1/25 // beta is already counted 25 times
 
   this.lastRadii = this.radii
   this.radii = this.getBubbleRadii(bubble)
@@ -356,18 +360,17 @@ Bub.updateEnergies = function () {
   let lastSquareSum = getSquareSum(this.lastRadii)
   E2 = Math.abs(newSquareSum - lastSquareSum)
 
+  // Rescale energy
+  E1 *= this.energy1weight / (this.energy1weight + this.energy2weight) * this.energyScale
+  E2 *= this.energy2weight / (this.energy1weight + this.energy2weight) * this.energyScale
+
   // Compute total energy
   E = E1 + E2
-
-  // Store rescaled energy
-  let visualE = E * this.energyScale
-  let visualE1 = E1 * this.energyScale
-  let visualE2 = E2 * this.energyScale
 
   // If something changed (non-zero energy), push to one of the energyHistory values
   if (E > 0) {
     this.energyHistoryIndex = (this.energyHistoryIndex + 1) % this.energyHistoryLength
-    let newEnergy = { E: visualE, E1: visualE1, E2: visualE2 }
+    let newEnergy = { E: E, E1: E1, E2: E2 }
     this.energyHistory[this.energyHistoryIndex] = newEnergy
 
     // Assign average of energyHistory to energy value
@@ -531,13 +534,15 @@ Bub.draw8 = function (ctx) {
 Bub.draw9 = function (ctx) {
   if (this.energy.E > 0) {
     ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
-    let rad = this.energy.E * this.w / 60
+    let rad = this.energy.E * this.w / 40
     let proportionOfE1 = this.energy.E1 / this.energy.E
     let ang = 2 * Math.PI * proportionOfE1 / 2
 
+    //rad = 250
+
     // E1 circle
     ctx.beginPath()
-    ctx.fillStyle = "hsl(210, 80%, 55%)"
+    ctx.fillStyle = "hsl(200, 90%, 55%)"
     let x = this.xC + rad * Math.cos(ang)
     let y = this.yC + rad * Math.sin(ang)
     ctx.arc(this.xC, this.yC, rad, -ang, ang, false)
@@ -548,7 +553,7 @@ Bub.draw9 = function (ctx) {
 
     // E2 circle
     ctx.beginPath()
-    ctx.fillStyle = "hsl(190, 80%, 55%)"
+    ctx.fillStyle = "hsl(15, 90%, 55%)"
     ctx.moveTo(this.xC, this.yC)
     ctx.lineTo(x, y)
     ctx.arc(this.xC, this.yC, rad, ang, 2 * Math.PI - ang, false)
