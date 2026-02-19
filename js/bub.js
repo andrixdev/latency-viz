@@ -116,20 +116,21 @@ Bub.setup = function () {
   this.averageBubble = []
 
   // Barycenter
+  this.lastBary = { x: 0, y: 0, z: 0 }
   this.bary = { x: 0, y: 0, z: 0 }
   this.averageBary = { x: 0, y: 0, z: 0 }
 
   // Main direction
-  this.direction = { x: 0, y: 0, z: 0}
+  this.direction = { x: 0, y: 0, z: 0 }
 
-  // Bubble energy
+  // Bubble energies
   this.radii = 0
   this.lastRadii = 0
-  this.energyHistoryLength = 20
+  this.energyHistoryLength = 10 // Energy is already based on average bubble, this adds extra smoothing
   this.energyHistoryIndex = 0
   this.energyHistory = []
-  this.energy = 0 // Average of energyHistory
-  this.energyScale = 6000
+  this.energy = { E: 0, E1: 0, E2: 0 } // Average of energyHistory
+  this.energyScale = 12000
 
   // Fullscreen mode
   this.isFullscreen = false
@@ -231,14 +232,17 @@ Bub.updateFrame = function (bubbleFrame) {
   this.averageBubble = this.getAverageBubble()
 
   // Compute barycenters
-  this.bary = this.getBarycenter(this.bubble)
+  let newBary = this.getBarycenter(this.bubble)
+  this.lastBary = this.bary
+  this.bary = newBary
+  this.lastAverageBary = this.averageBary
   this.averageBary = this.getBarycenter(this.averageBubble)
 
   // Compute main direction (from bubble history)
   this.updateDirection()
   
   // Compute energy
-  this.updateBubbleEnergy(this.averageBubble)
+  this.updateEnergies()
 }
 Bub.updateBarycenter = function () {
 }
@@ -263,7 +267,7 @@ Bub.getBubbleRadii = function (bubble) {
   let rAverage
   let rSum = 0
 
-  let bary = this.bary
+  let bary = this.getBarycenter(bubble)
   bubble.forEach(pt => {
     let dx = bary.x - pt.x
     let dy = bary.y - pt.y
@@ -302,21 +306,41 @@ Bub.getAverageBubble = function () {
   
   return avBubble
 }
-Bub.getEnergyHistoryAverage = function () {
+Bub.getEnergyHistoryAverages = function () {
   if (!this.energyHistory.length) {
     console.log("Empty energyHistory, filling with zeros...")
     for (let i = 0; i < this.energyHistoryLength; i++) {
-      this.energyHistory.push(0)
+      this.energyHistory.push({ E: 0, E1: 0, E2: 0 })
     }
   }
 
-  let nrj = 0
-  this.energyHistory.forEach(h => { nrj += h })
-  nrj /= this.energyHistoryLength
+  let e = 0, e1 = 0, e2 = 0
+  this.energyHistory.forEach(h => {
+    e += h.E
+    e1 += h.E1
+    e2 += h.E2
+  })
+  e /= this.energyHistoryLength
+  e1 /= this.energyHistoryLength
+  e2 /= this.energyHistoryLength
 
-  return nrj
+  return { E: e, E1: e1, E2: e2 }
 }
-Bub.updateBubbleEnergy = function (bubble) {
+Bub.updateEnergies = function () {
+  let bubble = this.averageBubble
+
+  // Energy (total) == Energy1 (displacement) + Energy2 (expansion)
+  let E = 0
+  let E1 = 0
+  let E2 = 0
+
+  // Compute displacement energy (just norm of barycenter delta)
+  let dx = this.averageBary.x - this.lastAverageBary.x
+  let dy = this.averageBary.y - this.lastAverageBary.y
+  E1 = dx*dx + dy*dy // Usual square root, but squared again...
+
+  // Compute expansion energy
+  // Weights of min, avg and max circles
   let alpha = 25
   let beta = 1
   let gamma = 0
@@ -324,28 +348,34 @@ Bub.updateBubbleEnergy = function (bubble) {
   this.lastRadii = this.radii
   this.radii = this.getBubbleRadii(bubble)
 
-  // E = variation of weighted average of squares
-
+  // E2 = variation of weighted average of squares
   let getSquareSum = (rii) => {
     return 1 / (alpha + beta + gamma) * (alpha * Math.pow(rii.rMin, 2) + beta * Math.pow(rii.rAvg, 2) + gamma * Math.pow(rii.rMax, 2))
   }
-
   let newSquareSum = getSquareSum(this.radii)
   let lastSquareSum = getSquareSum(this.lastRadii)
-  let E = Math.abs(newSquareSum - lastSquareSum)
-  //let sigma = 1
-  //let visualE = .5 * Math.pow(10000 * E, sigma)
+  E2 = Math.abs(newSquareSum - lastSquareSum)
+
+  // Compute total energy
+  E = E1 + E2
+
+  // Store rescaled energy
   let visualE = E * this.energyScale
+  let visualE1 = E1 * this.energyScale
+  let visualE2 = E2 * this.energyScale
 
   // If something changed (non-zero energy), push to one of the energyHistory values
   if (E > 0) {
     this.energyHistoryIndex = (this.energyHistoryIndex + 1) % this.energyHistoryLength
-    this.energyHistory[this.energyHistoryIndex] = visualE
+    let newEnergy = { E: visualE, E1: visualE1, E2: visualE2 }
+    this.energyHistory[this.energyHistoryIndex] = newEnergy
 
     // Assign average of energyHistory to energy value
-    this.energy = this.getEnergyHistoryAverage()
+    this.energy = this.getEnergyHistoryAverages()
   }
-  
+
+  //if (Bub.step % 4 == 0) console.log(this.energy)
+
 }
 Bub.updateDirection = function () {
   if (this.bubbleHistory.length == this.bubbleHistoryLength && this.bubbleHistoryLength >= 2) {
@@ -499,14 +529,31 @@ Bub.draw8 = function (ctx) {
 }
 // Energy
 Bub.draw9 = function (ctx) {
-  ctx.fillStyle = "#FFFD"
-  if (this.energy > 0) {
+  if (this.energy.E > 0) {
     ctx.clearRect(0, 0, this.fullWidth, this.fullHeight)
+    let rad = this.energy.E * this.w / 60
+    let proportionOfE1 = this.energy.E1 / this.energy.E
+    let ang = 2 * Math.PI * proportionOfE1 / 2
+
+    // E1 circle
     ctx.beginPath()
-    let rad = this.energy * this.w / 150
-    ctx.arc(this.xC, this.yC, rad, 0, 2 * Math.PI, false)
+    ctx.fillStyle = "hsl(210, 80%, 55%)"
+    let x = this.xC + rad * Math.cos(ang)
+    let y = this.yC + rad * Math.sin(ang)
+    ctx.arc(this.xC, this.yC, rad, -ang, ang, false)
+    ctx.lineTo(x, y)
+    ctx.lineTo(this.xC, this.yC)
     ctx.fill()
     ctx.closePath()
+
+    // E2 circle
+    ctx.beginPath()
+    ctx.fillStyle = "hsl(190, 80%, 55%)"
+    ctx.moveTo(this.xC, this.yC)
+    ctx.lineTo(x, y)
+    ctx.arc(this.xC, this.yC, rad, ang, 2 * Math.PI - ang, false)
+    ctx.lineTo(this.xC, this.yC)
+    ctx.fill()
   }
 }
 // Direction
