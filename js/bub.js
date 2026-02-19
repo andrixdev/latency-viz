@@ -267,8 +267,7 @@ Bub.getBubbleRadii = function (bubble) {
   bubble.forEach(pt => {
     let dx = bary.x - pt.x
     let dy = bary.y - pt.y
-    let dz = bary.z - pt.z
-    let dist = Math.sqrt(dx*dx + dy*dy + dz*dz)
+    let dist = Math.sqrt(dx*dx + dy*dy)
     rSum += dist
 
     if (dist > rMax) rMax = dist
