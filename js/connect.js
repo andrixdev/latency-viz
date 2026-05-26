@@ -6,16 +6,8 @@
  * ANDRIX & Maxime Touroute © 2026
  */
 
-let socketURL = ""
-if (Init.room == 1) {
-	socketURL = "https://latency.maximetouroute.com:443"
-} else if (Init.room == 2) {
-	socketURL = "https://haut.maximetouroute.com:443"
-} else if (Init.room == 3) {
-	socketURL = "http://192.168.4.23:3005"
-} else {
-	socketURL = "https://latency.maximetouroute.com:443"
-}
+const socketURL = `https://${Init.cluster}.${Init.domain}:443`
+
 
 const socket = io(socketURL)
 
@@ -54,10 +46,16 @@ socket.on('connect', () => {
 				Bub.updateLivermakerControls(liveMakerState)
 			})
 		})
+
+
+		// Subscribe to bubbleRoom events
+		socket.emit('ltbr');
+
+		// subscribe to bubbleFrame
+		socket.on('lonbf', (payload) => {
+			Bub.updateFrame(payload.bubble)
+		})
+
 	})
 })
 
-// Full frame
-socket.on('latency_onNewBubbleFrame', (bubbleFrame) => {
-	Bub.updateFrame(bubbleFrame)
-})
